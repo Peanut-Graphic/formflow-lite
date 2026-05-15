@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Retry Processor
@@ -9,7 +12,6 @@ if (!defined('ABSPATH')) {
  * Processes the retry queue for failed API submissions.
  */
 
-namespace FFFL;
 
 use FFFL\Api\ApiClient;
 use FFFL\Database\Database;

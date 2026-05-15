@@ -1,6 +1,9 @@
 <?php
+namespace FFFL\Api;
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+
+
 /**
  * Mock API Client
  *
@@ -8,7 +11,6 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  * Use this by enabling "Demo Mode" on a form instance.
  */
 
-namespace FFFL\Api;
 
 use FFFL\Database\Database;
 

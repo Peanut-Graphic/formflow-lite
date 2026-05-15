@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Feature Manager - Lite Version
@@ -10,7 +13,6 @@ if (!defined('ABSPATH')) {
  * Simplified for FormFlow Lite with core features only.
  */
 
-namespace FFFL;
 
 class FeatureManager {
 

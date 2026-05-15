@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Encryption Utilities
@@ -9,7 +12,6 @@ if (!defined('ABSPATH')) {
  * Handles AES-256-CBC encryption/decryption for sensitive data storage.
  */
 
-namespace FFFL;
 
 class Encryption {
 

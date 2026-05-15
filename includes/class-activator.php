@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Plugin Activator
@@ -10,7 +13,6 @@ if (!defined('ABSPATH')) {
  * Lite version - core tables only.
  */
 
-namespace FFFL;
 
 class Activator {
 

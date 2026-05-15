@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Diagnostics & Health Check System
@@ -9,7 +12,6 @@ if (!defined('ABSPATH')) {
  * Provides end-to-end testing and system verification for the plugin.
  */
 
-namespace FFFL;
 
 use FFFL\Database\Database;
 use FFFL\Api\ApiClient;

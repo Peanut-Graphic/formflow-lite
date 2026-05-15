@@ -1,7 +1,10 @@
 <?php
+namespace FFFL\Database;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Database Operations
@@ -9,7 +12,6 @@ if (!defined('ABSPATH')) {
  * Handles all CRUD operations for plugin database tables.
  */
 
-namespace FFFL\Database;
 
 use FFFL\Encryption;
 

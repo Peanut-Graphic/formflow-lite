@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Webhook Handler
@@ -10,7 +13,6 @@ if (!defined('ABSPATH')) {
  * Enhanced for Peanut Suite integration with attribution data.
  */
 
-namespace FFFL;
 
 use FFFL\Database\Database;
 

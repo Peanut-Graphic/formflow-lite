@@ -1,7 +1,10 @@
 <?php
+namespace FFFL\Api;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Response Validator
@@ -10,7 +13,6 @@ if (!defined('ABSPATH')) {
  * processing of malformed or unexpected data.
  */
 
-namespace FFFL\Api;
 
 class ResponseValidator {
 

@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Main Plugin Class
@@ -10,7 +13,6 @@ if (!defined('ABSPATH')) {
  * Lite version - core enrollment functionality only.
  */
 
-namespace FFFL;
 
 class Plugin {
 

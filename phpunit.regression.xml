@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!--
+	Self-contained config for the ABSPATH-guard-order regression test.
+	Deliberately has NO bootstrap (the default tests/bootstrap.php is
+	WordPress-coupled and would fail to load when the plugin tree is broken)
+	and NO coverage whitelist (which would try to include the broken files).
+	Run: php phpunit.phar -c phpunit.regression.xml
+-->
+<phpunit
+	backupGlobals="false"
+	colors="true"
+>
+	<testsuites>
+		<testsuite name="regression">
+			<directory suffix="Test.php">./tests/Regression/</directory>
+		</testsuite>
+	</testsuites>
+</phpunit>

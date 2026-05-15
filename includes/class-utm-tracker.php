@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * UTM Tracker
@@ -9,7 +12,6 @@ if (!defined('ABSPATH')) {
  * Tracks marketing attribution via UTM parameters, referrers, and landing pages.
  */
 
-namespace FFFL;
 
 class UTMTracker {
 

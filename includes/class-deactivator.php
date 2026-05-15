@@ -1,7 +1,10 @@
 <?php
+namespace FFFL;
+
 if (!defined('ABSPATH')) {
     exit;
 }
+
 
 /**
  * Plugin Deactivator
@@ -10,7 +13,6 @@ if (!defined('ABSPATH')) {
  * Full cleanup only happens on uninstall.
  */
 
-namespace FFFL;
 
 class Deactivator {
 

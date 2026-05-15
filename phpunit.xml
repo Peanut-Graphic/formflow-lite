@@ -11,6 +11,9 @@
 		<testsuite name="FormFlow Lite Test Suite">
 			<directory prefix="test-" suffix=".php">./tests/</directory>
 		</testsuite>
+		<testsuite name="regression">
+			<directory suffix="Test.php">./tests/Regression/</directory>
+		</testsuite>
 	</testsuites>
 	<filter>
 		<whitelist processUncoveredFilesFromWhitelist="true">
