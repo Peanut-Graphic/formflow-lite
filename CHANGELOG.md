@@ -5,6 +5,13 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.9] - 2026-05-21
+
+### Fixed
+
+- **All Time stats no longer wrap 3+1.** With the grid layout now actually active (3.2.8), the four All Time cards were wrapping into a 3-on-top-1-below pattern because each card had a 200px minimum. Locked to four equal columns at slightly smaller padding so all four sit on one row.
+- **Today panel no longer stretches to match All Time's height.** Added `align-items: start` to the dashboard grid so the Today column hugs its content instead of inflating with vertical whitespace.
+
 ## [3.2.8] - 2026-05-21
 
 ### Fixed
