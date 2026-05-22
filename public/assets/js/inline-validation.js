@@ -378,11 +378,30 @@
 
             $field.addClass('ff-input-valid').removeClass('ff-input-error');
 
+            // 3.2.12: Do NOT wrap inputs that sit inside an .ff-input-group
+            // (e.g. the phone field with its type selector). Wrapping the
+            // <input> in .ff-input-wrap (width:100%) breaks the group's flex
+            // layout and visually clips/shrinks the field. The green border
+            // already signals success for these. Also bail if the node isn't
+            // currently attached, to avoid the jQuery .wrap() "appendChild:
+            // node no longer a child" race with the formatter's blur handler
+            // (was crashing on phone + ZIP fields).
+            if ($field.closest('.ff-input-group').length) {
+                return;
+            }
+            if (!$field[0] || !document.contains($field[0])) {
+                return;
+            }
+
             // Ensure field is wrapped for icon positioning
             var $inputWrap = $field.closest('.ff-input-wrap');
             if (!$inputWrap.length) {
                 // Wrap the input if not already wrapped
-                $field.wrap('<span class="ff-input-wrap"></span>');
+                try {
+                    $field.wrap('<span class="ff-input-wrap"></span>');
+                } catch (e) {
+                    return;
+                }
                 $inputWrap = $field.closest('.ff-input-wrap');
             }
 

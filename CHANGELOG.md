@@ -5,6 +5,16 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.12] - 2026-05-22
+
+### Fixed (enrollment-critical)
+
+- **Scheduler now receives the Comverge number from enrollment, so installation slots load.** The step-3 `enroll.xml` response returns the Comverge/FSR identifiers inside a `<message>` wrapper as lowercase nodes (`<cano>`, `<fsrno>`, `<comvergeno>`), which the XML parser represents as `{message: {cano: {value: "..."}}}`. The extraction in `fffl_enroll_early` only looked for top-level `caNo`/`fsr` (and a non-existent `response` wrapper), so it always stored an empty Comverge number — leaving step 4 with nothing to query and an all-grey "no available slots" calendar. Now digs through the `message` wrapper and `{value}` leaves and accepts every casing IntelliSource uses.
+
+### Fixed (frontend)
+
+- **Phone field no longer breaks/clips when validated.** The inline-validation success state wrapped each `<input>` in a `width:100%` span to position a checkmark. For the phone field (which lives in a flex `.ff-input-group` with its type selector) the wrap broke the group's layout and clipped the number; on phone + ZIP it also raced with the formatter's blur handler and threw `appendChild: node no longer a child`. Success-icon wrapping is now skipped for grouped inputs (the green border still signals success) and guarded against detached nodes.
+
 ## [3.2.11] - 2026-05-22
 
 ### Fixed (enrollment-critical)

@@ -898,23 +898,53 @@ class Frontend {
                 $api_response = $api->enroll($form_data);
                 $enrollment_response = $api_response;
 
-                // Extract FSR# and caNo from enrollment response
-                // The API returns these in various formats
-                $fsr_no = $api_response['fsr'] ?? $api_response['fsrNo'] ?? $api_response['FSR'] ?? '';
-                $ca_no = $api_response['caNo'] ?? $api_response['ca_no'] ?? $api_response['CaNo'] ?? '';
-                $comverge_no = $api_response['comvergeNo'] ?? $api_response['comverge_no'] ?? $ca_no;
+                // Extract FSR#/caNo from the enrollment response. 3.2.12:
+                // IntelliSource returns these inside a <message> wrapper as
+                // lowercase nodes (<cano>, <fsrno>, <comvergeno>), and the XML
+                // parser produces {message: {cano: {value: "..."}}}. The old
+                // code looked for top-level 'caNo'/'fsr' (and a 'response'
+                // wrapper that never exists), so it always extracted empty —
+                // leaving step 4 with no Comverge number and therefore no
+                // available slots. Dig into the wrapper + {value} leaves and
+                // accept every casing IntelliSource uses.
+                $extract = static function ($resp, array $keys): string {
+                    if (!is_array($resp)) {
+                        return '';
+                    }
+                    $bags = [$resp];
+                    if (count($resp) === 1) {
+                        $only = reset($resp);
+                        if (is_array($only)) {
+                            $bags[] = $only;
+                        }
+                    }
+                    foreach ($bags as $bag) {
+                        foreach ($keys as $key) {
+                            if (!isset($bag[$key])) {
+                                continue;
+                            }
+                            if (is_array($bag[$key]) && isset($bag[$key]['value'])) {
+                                return (string) $bag[$key]['value'];
+                            }
+                            if (is_scalar($bag[$key])) {
+                                return (string) $bag[$key];
+                            }
+                        }
+                    }
+                    return '';
+                };
 
-                // Also check for nested response structure
-                if (empty($fsr_no) && isset($api_response['response']['fsr'])) {
-                    $fsr_no = $api_response['response']['fsr'];
+                $ca_no       = $extract($api_response, ['cano', 'caNo', 'ca_no', 'CaNo']);
+                $comverge_no = $extract($api_response, ['comvergeno', 'comvergeNo', 'comverge_no']) ?: $ca_no;
+                if ($ca_no === '') {
+                    $ca_no = $comverge_no;
                 }
-                if (empty($ca_no) && isset($api_response['response']['caNo'])) {
-                    $ca_no = $api_response['response']['caNo'];
-                }
+                $fsr_no      = $extract($api_response, ['fsrno', 'fsr', 'fsrNo', 'FSR']);
 
                 $this->db->log('info', 'Early enrollment API response', [
                     'fsr_no' => $fsr_no,
                     'ca_no' => $ca_no,
+                    'comverge_no' => $comverge_no,
                     'response_keys' => array_keys($api_response),
                 ], $instance_id, $submission['id']);
 
