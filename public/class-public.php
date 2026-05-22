@@ -668,6 +668,38 @@ class Frontend {
     }
 
     /**
+     * Map an IntelliSource enrollment error into a customer-facing message.
+     *
+     * 3.2.15: shown when enrollment is rejected so the person can adjust their
+     * answers (or knows to call support) instead of landing on an empty
+     * scheduler with no explanation.
+     *
+     * @param string $code    IntelliSource error code (e.g. "04")
+     * @param string $api_msg Raw IntelliSource error message
+     * @param array  $instance
+     * @return string
+     */
+    private function map_enrollment_error(string $code, string $api_msg, array $instance): string {
+        $phone = $instance['support_phone']
+            ?? ($instance['settings']['support_phone'] ?? '');
+        $contact = $phone !== ''
+            ? sprintf(__('please contact customer service at %s.', 'formflow-lite'), $phone)
+            : __('please contact customer service.', 'formflow-lite');
+
+        switch ($code) {
+            case '04': // Invalid or missing promo code
+                return __('There was a problem with the "How did you hear about this program?" selection. Please go back to the previous step and choose a different option.', 'formflow-lite');
+            case '03': // Already enrolled
+                return __('This account appears to already be enrolled in the program. If you believe this is an error, ', 'formflow-lite') . $contact;
+            case '01': // Account / eligibility validation
+                return __('We could not verify your account for enrollment. Please go back and double-check your account number and ZIP code, or ', 'formflow-lite') . $contact;
+            default:
+                $base = __('We were not able to complete your enrollment. Please review your information and try again, or ', 'formflow-lite') . $contact;
+                return $base;
+        }
+    }
+
+    /**
      * Validate account number
      */
     public function fffl_validate_account(): void {
@@ -986,6 +1018,30 @@ class Frontend {
                     'message_dump' => is_string($message_dump) ? substr($message_dump, 0, 900) : '',
                     'response_keys' => array_keys($api_response),
                 ], $instance_id, $submission['id']);
+
+                // 3.2.15: if IntelliSource rejected the enrollment (no Comverge
+                // number returned), stop and show the customer a clear,
+                // actionable message instead of silently advancing them into an
+                // empty scheduler. IS returns the reason in an <error-detail>
+                // element with code + message attributes.
+                if ($ca_no === '' && $comverge_no === '') {
+                    $err_attr = $api_response['message']['error-detail']['error']['attr'] ?? [];
+                    $err_code = is_array($err_attr) ? (string) ($err_attr['code'] ?? '') : '';
+                    $api_err  = is_array($err_attr) ? (string) ($err_attr['message'] ?? '') : '';
+
+                    $this->db->log('warning', 'Enrollment rejected by IntelliSource', [
+                        'error_code' => $err_code,
+                        'api_message' => $api_err,
+                        'enroll_status' => $enroll_status,
+                    ], $instance_id, $submission['id']);
+
+                    wp_send_json_error([
+                        'message' => $this->map_enrollment_error($err_code, $api_err, $instance),
+                        'error_code' => $err_code,
+                        'enrollment_failed' => true,
+                    ]);
+                    return;
+                }
 
             } else {
                 // Demo mode - generate mock FSR/caNo
