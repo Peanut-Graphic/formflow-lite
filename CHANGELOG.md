@@ -5,6 +5,12 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.10] - 2026-05-21
+
+### Fixed (enrollment-critical)
+
+- **Thermostat enrollments now register as Sensei WiFi, not IntelliTemp.** The IntelliSource desired-device code (`dd-15`) for thermostats was being sent as `05`, which IntelliSource maps to IntelliTemp. The legacy production enrollment form sent `03` (Sensei WiFi). Corrected both field mappers (`connectors/intellisource/class-intellisource-field-mapper.php` and `includes/api/class-field-mapper.php`) to send `03`. DCU/outdoor-switch enrollments (`02`) were already correct.
+
 ## [3.2.9] - 2026-05-21
 
 ### Fixed

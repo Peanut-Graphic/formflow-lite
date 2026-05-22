@@ -187,15 +187,19 @@ class IntelliSourceFieldMapper {
             $api_params['eqCount-15'] = $form_data['thermostat_count'] ?? '1';
         }
 
-        // Desired device based on type
-        // Device codes: '02' = DCU (outdoor switch), '05' = Sensi WiFi thermostat
+        // Desired device based on type.
+        // Device codes (must match the values IntelliSource maps to its device
+        // catalog): '02' = DCU (outdoor switch), '03' = Sensei WiFi thermostat.
+        // NOTE: 3.2.10 — was '05' here, which IntelliSource maps to IntelliTemp,
+        // not Sensei WiFi. The legacy production enrollment form sent '03' for
+        // thermostats; restored to match so enrollments register as Sensei WiFi.
         if ($device_type === 'dcu') {
             $api_params['dd-15'] = '02';
             $easy_access = $form_data['easy_access'] ?? 'Yes';
             $install_time = $form_data['install_time'] ?? 'Anytime';
             $api_params['mustSchedule'] = ($easy_access === 'No' || $install_time === 'Appointment') ? 'Y' : 'N';
         } else {
-            $api_params['dd-15'] = '05'; // Sensi WiFi thermostat
+            $api_params['dd-15'] = '03'; // Sensei WiFi thermostat
         }
 
         // Additional required fields
