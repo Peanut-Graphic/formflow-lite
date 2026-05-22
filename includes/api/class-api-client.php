@@ -156,6 +156,11 @@ class ApiClient {
             if (isset($config['location'])) {
                 $params["eqLoc-{$type}"] = $config['location'];
             }
+            // 3.2.16: include the desired-device code (dd-{type}); IntelliSource
+            // uses it alongside the equipment counts when computing slots.
+            if (isset($config['desired_device'])) {
+                $params["dd-{$type}"] = $config['desired_device'];
+            }
         }
 
         // 3.2.11: IntelliSource scheduling is a GET endpoint (params in query

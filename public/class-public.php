@@ -1155,16 +1155,22 @@ class Frontend {
         try {
             $api = $this->get_api_client($instance);
 
-            // Build equipment array
+            // Build equipment array. 3.2.16: IntelliSource needs the equipment
+            // counts to compute installation slots — without them scheduling.xml
+            // returns no availability. The previous code read form fields that
+            // don't exist (ac_units / heat_pumps / ac_heat_units), so the call
+            // went out with no equipment and the calendar was always empty. The
+            // real fields are device_type + thermostat_count (same values the
+            // enrollment maps to eqCount-15 / dd-15). Mirror that here.
             $equipment = [];
-            if (!empty($form_data['ac_units'])) {
-                $equipment['05'] = ['count' => (int)$form_data['ac_units'], 'location' => '05'];
-            }
-            if (!empty($form_data['heat_pumps'])) {
-                $equipment['20'] = ['count' => (int)$form_data['heat_pumps'], 'location' => '05'];
-            }
-            if (!empty($form_data['ac_heat_units'])) {
-                $equipment['15'] = ['count' => (int)$form_data['ac_heat_units'], 'location' => '05'];
+            $device_type = $form_data['device_type'] ?? 'thermostat';
+            $unit_count = max(1, (int) ($form_data['thermostat_count'] ?? 1));
+            if ($device_type === 'dcu') {
+                // Outdoor switch (DCU)
+                $equipment['15'] = ['count' => $unit_count, 'location' => '05', 'desired_device' => '02'];
+            } else {
+                // Sensei WiFi thermostat
+                $equipment['15'] = ['count' => $unit_count, 'location' => '05', 'desired_device' => '03'];
             }
 
             $result = $api->get_schedule_slots($account_number, $start_date, $equipment);

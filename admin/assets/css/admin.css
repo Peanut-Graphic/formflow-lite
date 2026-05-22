@@ -4338,3 +4338,48 @@ table .ui-sortable-placeholder td {
     position: relative;
     top: -1px;
 }
+
+/* ==========================================================================
+   3.2.16: Dashboard responsiveness
+   The All Time stat row is locked to 4 columns (3.2.9) so the four cards
+   stay on one line on desktop. On narrower viewports that's too cramped, so
+   step it down to 2 columns then 1. Also let the wide admin tables scroll
+   horizontally instead of overflowing the card.
+   ========================================================================== */
+@media (max-width: 1100px) {
+    .ff-stats-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .ff-stats-cards {
+        grid-template-columns: 1fr;
+    }
+    .ff-stats-cards-small {
+        flex-direction: column;
+    }
+    .ff-stat-number {
+        font-size: 26px;
+    }
+}
+
+/* Keep the form-instances / submissions tables usable on small screens */
+@media (max-width: 782px) {
+    .ff-card .wp-list-table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .ff-quick-actions-bar {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .ff-quick-actions-bar .ff-quick-actions-left,
+    .ff-quick-actions-bar .ff-quick-actions-right {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+}

@@ -5,6 +5,16 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.16] - 2026-05-22
+
+### Fixed (enrollment-critical)
+
+- **Installation slots now load — scheduling sends the equipment counts.** With enrollment succeeding (3.2.12/3.2.14), the scheduling call was still going out with no equipment parameters because it read form fields that don't exist (`ac_units` / `heat_pumps` / `ac_heat_units`). IntelliSource needs the equipment counts to compute availability, so it returned an empty calendar. The scheduling call now uses the real fields (`device_type` + `thermostat_count`) and sends `eqCount-15`, `eqLoc-15`, and `dd-15` (Sensei WiFi `03` / DCU `02`) — matching what enrollment submits. `ApiClient::get_schedule_slots()` now also forwards the desired-device (`dd-{type}`) parameter.
+
+### Fixed (admin)
+
+- **Dashboard responsiveness.** The All Time stat row (locked to four columns) now steps down to two columns under 1100px and one under 480px; the wide form-instances/submissions tables scroll horizontally instead of overflowing; and the quick-action bar wraps cleanly on small screens.
+
 ## [3.2.15] - 2026-05-22
 
 ### Added (UX)
