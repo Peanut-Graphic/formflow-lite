@@ -58,7 +58,10 @@ class ApiClient {
             'val' => 'submit'
         ];
 
-        $response = $this->request('/prospects/validate.xml', $params);
+        // 3.2.11: IntelliSource reads parameters from the query string (GET).
+        // POST returns an empty/Code-01 validation because IS ignores the body.
+        // force_method=true bypasses the GET->POST credential coercion.
+        $response = $this->request('/prospects/validate.xml', $params, 'GET', true, true);
 
         // Validate response schema
         if (!ResponseValidator::validate_validation_response($response)) {
@@ -102,7 +105,9 @@ class ApiClient {
             'field_count' => count($safe_log),
         ], $this->instance_id);
 
-        return $this->request('/prospects/enroll.xml', $params);
+        // 3.2.11: IntelliSource enrollment is a GET endpoint (params in query
+        // string). See validate_account note.
+        return $this->request('/prospects/enroll.xml', $params, 'GET', true, true);
     }
 
     /**
@@ -153,7 +158,9 @@ class ApiClient {
             }
         }
 
-        $response = $this->request('/field_service_requests/scheduling.xml', $params);
+        // 3.2.11: IntelliSource scheduling is a GET endpoint (params in query
+        // string). See validate_account note.
+        $response = $this->request('/field_service_requests/scheduling.xml', $params, 'GET', true, true);
 
         // Validate response schema
         if (!ResponseValidator::validate_scheduling_response($response)) {
@@ -222,8 +229,9 @@ class ApiClient {
             $params['userId'] = $user_id;
         }
 
-        // Use POST to avoid credentials in URL
-        return $this->request('/field_service_requests/schedule', $params, 'POST', false);
+        // 3.2.11: IntelliSource booking is a GET endpoint (params in query
+        // string); POST returns no result. See validate_account note.
+        return $this->request('/field_service_requests/schedule', $params, 'GET', false, true);
     }
 
     /**

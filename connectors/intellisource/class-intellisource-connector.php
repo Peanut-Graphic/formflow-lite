@@ -171,23 +171,24 @@ class IntelliSourceConnector implements ApiConnectorInterface {
      * @return AccountValidationResult
      */
     public function validate_account(array $data, array $config): AccountValidationResult {
-        // Get account number and sanitize it
-        $account = $data['account_number'] ?? $data['utility_no'] ?? '';
-
-        // If account starts with X (Comverge format), preserve the X prefix
-        // Otherwise, strip all non-digit characters
-        if (strtolower(substr($account, 0, 1)) === 'x') {
-            $account = 'X' . preg_replace('/\D/', '', substr($account, 1));
-        } else {
-            $account = preg_replace('/\D/', '', $account);
-        }
+        // Get account number. Match the legacy form's account routing:
+        //  - an 'X'-prefixed entry is a Comverge account -> send as caNo (X removed)
+        //  - everything else (plain utility numbers AND 'PHI'-prefixed Comverge
+        //    numbers) is sent as utility_no UNCHANGED. Do NOT strip non-digits:
+        //    that removes the 'PHI' prefix and IntelliSource then returns a
+        //    validation error (Code 01). 3.2.11.
+        $account = trim($data['account_number'] ?? $data['utility_no'] ?? '');
 
         $params = [
-            'utility_no' => $account,
-            'zip' => preg_replace('/\D/', '', $data['zip'] ?? ''), // ZIP should also be digits only
+            'zip' => preg_replace('/\D/', '', $data['zip'] ?? ''), // ZIP should be digits only
             'pswd' => $config['api_password'],
             'val' => 'submit',
         ];
+        if ($account !== '' && strtolower($account[0]) === 'x') {
+            $params['caNo'] = preg_replace('/\D/', '', substr($account, 1));
+        } else {
+            $params['utility_no'] = $account;
+        }
 
         try {
             $response = $this->make_request(
@@ -256,16 +257,17 @@ class IntelliSourceConnector implements ApiConnectorInterface {
             'val' => 'submit',
         ];
 
-        // Handle account number format - sanitize non-digits
-        // For admin view, account might be empty or 'ADMIN-VIEW' - don't send in that case
-        $account = $data['account_number'] ?? $data['utility_no'] ?? '';
-        if (!empty($account) && $account !== 'ADMIN-VIEW') {
-            if (strtolower(substr($account, 0, 1)) === 'x') {
-                // Comverge format: X followed by digits
+        // Handle account number format (see validate_account note, 3.2.11):
+        //  - 'X'-prefixed -> caNo (X removed, digits)
+        //  - everything else -> utility_no UNCHANGED (preserve 'PHI' prefix;
+        //    stripping it triggers an IntelliSource validation error).
+        // For admin view, account might be empty or 'ADMIN-VIEW' - don't send then.
+        $account = trim($data['account_number'] ?? $data['utility_no'] ?? '');
+        if ($account !== '' && $account !== 'ADMIN-VIEW') {
+            if (strtolower($account[0]) === 'x') {
                 $params['caNo'] = preg_replace('/\D/', '', substr($account, 1));
             } else {
-                // Standard utility account - strip all non-digits
-                $params['utility_no'] = preg_replace('/\D/', '', $account);
+                $params['utility_no'] = $account;
             }
         }
         // For admin view without account, API should return general availability

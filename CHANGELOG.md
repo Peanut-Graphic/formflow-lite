@@ -5,6 +5,13 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.11] - 2026-05-22
+
+### Fixed (enrollment-critical)
+
+- **Account validation/enrollment/scheduling/booking now use GET, not POST.** IntelliSource reads all parameters from the query string; it ignores POST bodies and returns a "Validation error (Code: 01)" when the form POSTs. `ApiClient::request()` was force-converting these credentialed calls to POST (the same coercion fixed for `/promo_codes` in 3.2.7). Switched `validate.xml`, `enroll.xml`, `scheduling.xml`, and the booking `schedule` call to GET via the `$force_method` flag. This is the actual cause of the "please check your credentials / validation error" failures on real accounts — the account number itself (e.g. `PHI`-prefixed Comverge numbers) was already being sent correctly.
+- **Account prefix no longer stripped in the connector path.** `IntelliSourceConnector::validate_account()` and `get_schedule_slots()` were stripping non-digits, which removed the `PHI` prefix from Comverge account numbers and caused IntelliSource to reject them. Now matches the legacy form's routing: `X`-prefixed → `caNo` (X removed); everything else (plain utility numbers and `PHI`-prefixed Comverge numbers) → `utility_no` unchanged.
+
 ## [3.2.10] - 2026-05-21
 
 ### Fixed (enrollment-critical)
