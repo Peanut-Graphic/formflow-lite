@@ -12,7 +12,25 @@ if (!defined('ABSPATH')) {
 // Import content helper function
 use function FFFL\Frontend\fffl_get_content;
 
+// 3.2.17: pre-fill Step 1 from URL parameters. The program's intro pages
+// link people here as e.g. /md-schedule/?has_ac=yes&device_type=thermostat,
+// having already asked "Do you have central AC?" and "Which device?". Honor
+// those so the customer isn't forced to re-answer — otherwise the fields sit
+// unchecked, and clicking Continue trips the browser's required-field
+// validation, which looks like the page is just refreshing.
 $device_type = $form_data['device_type'] ?? '';
+if ($device_type === '' && isset($_GET['device_type'])) {
+    $param_device = sanitize_text_field(wp_unslash($_GET['device_type']));
+    if (in_array($param_device, ['thermostat', 'dcu'], true)) {
+        $device_type = $param_device;
+    }
+}
+
+$has_ac_checked = !empty($form_data['has_ac']);
+if (!$has_ac_checked && isset($_GET['has_ac'])) {
+    $param_has_ac = strtolower(sanitize_text_field(wp_unslash($_GET['has_ac'])));
+    $has_ac_checked = in_array($param_has_ac, ['yes', '1', 'true', 'on'], true);
+}
 
 // Get customizable content
 $step_title = fffl_get_content($instance, 'step1_title', __('Choose Your Energy-Saving Device', 'formflow-lite'));
@@ -31,7 +49,7 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue', 'formflow-lit
         <div class="ff-field ff-field-required">
             <label class="ff-label">
                 <input type="checkbox" name="has_ac" id="has_ac" value="yes" required
-                       <?php checked(!empty($form_data['has_ac']), true); ?>>
+                       <?php checked($has_ac_checked, true); ?>>
                 <?php esc_html_e('I have a Central Air Conditioner or Heat Pump and I am a customer of this utility.', 'formflow-lite'); ?>
                 <span class="ff-required">*</span>
             </label>

@@ -5,6 +5,12 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.17] - 2026-05-22
+
+### Fixed (conversion-critical)
+
+- **Step 1 now honors `has_ac` and `device_type` URL parameters.** Intro pages link customers to the form as `…/?has_ac=yes&device_type=thermostat`, having already asked those questions — but the form ignored the parameters and rendered Step 1 with the checkbox and device radios unchecked. Because both are `required`, clicking Continue tripped the browser's native field validation and silently refused to advance, which looked exactly like the page "refreshing" to itself. Step 1 now pre-checks the "I have central AC" box and the matching device option from the URL, so Continue proceeds to Verify on the first click. (Form navigation itself was always working — confirmed by checking the fields manually.)
+
 ## [3.2.16] - 2026-05-22
 
 ### Fixed (enrollment-critical)
