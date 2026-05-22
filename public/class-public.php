@@ -740,11 +740,22 @@ class Frontend {
 
             $result = $api->validate_account($account_number, $zip_code);
 
+            // 3.2.18: the scheduler form is FOR already-enrolled customers — it
+            // exists so they can book their installation appointment. The same
+            // validate.xml call that flags "already enrolled" as a blocking
+            // error for the enrollment form must be treated as SUCCESS for the
+            // scheduler (the account being enrolled is the prerequisite, not a
+            // problem). Only block already-enrolled on the enrollment flow.
+            $is_scheduler = ($instance['form_type'] ?? 'enrollment') === 'scheduler';
+
             if (!$result->is_valid()) {
-                wp_send_json_error([
-                    'message' => $result->get_error_message() ?: __('Account validation failed. Please check your information.', 'formflow-lite')
-                ]);
-                return;
+                $enrolled_ok_for_scheduler = $is_scheduler && $result->is_already_enrolled();
+                if (!$enrolled_ok_for_scheduler) {
+                    wp_send_json_error([
+                        'message' => $result->get_error_message() ?: __('Account validation failed. Please check your information.', 'formflow-lite')
+                    ]);
+                    return;
+                }
             }
 
             // Get or create submission record

@@ -5,6 +5,12 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.18] - 2026-05-22
+
+### Fixed
+
+- **The scheduler no longer rejects already-enrolled accounts.** The scheduler form exists so already-enrolled customers can book their installation — but it reused the enrollment validation, which treats "already enrolled" as a blocking error. An enrolled customer trying to schedule got "this account is already enrolled." Account validation now treats already-enrolled as success when the form type is `scheduler` (and still blocks it on the enrollment flow).
+
 ## [3.2.17] - 2026-05-22
 
 ### Fixed (conversion-critical)
