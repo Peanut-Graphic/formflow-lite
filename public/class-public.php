@@ -890,6 +890,35 @@ class Frontend {
             $comverge_no = '';
             $enrollment_response = [];
 
+            // 3.2.14: guard the promo code. IntelliSource rejects the ENTIRE
+            // enrollment (error 04 "Invalid or missing promo code") if pCode
+            // isn't one of its valid codes. The promo_code can arrive from a
+            // UTM `promo` param or stale session data (e.g. "mail"), not just
+            // the dropdown — so validate it against the live code list and
+            // substitute a valid fallback rather than letting one bad value
+            // sink the whole enrollment.
+            if (!$demo_mode) {
+                $submitted_promo = (string) ($form_data['promo_code'] ?? '');
+                $valid_codes = $this->fetch_promo_codes($instance);
+                if (!empty($valid_codes)) {
+                    $valid_upper = array_map('strtoupper', $valid_codes);
+                    $is_valid = $submitted_promo !== ''
+                        && in_array(strtoupper($submitted_promo), $valid_upper, true);
+                    if (!$is_valid) {
+                        $settings = $instance['settings'] ?? [];
+                        $default_promo = (string) ($settings['default_promo_code'] ?? '');
+                        if ($default_promo === '' || !in_array(strtoupper($default_promo), $valid_upper, true)) {
+                            $default_promo = $valid_codes[0]; // first valid code as last resort
+                        }
+                        $this->db->log('warning', 'Substituted invalid/empty promo code before enrollment', [
+                            'submitted' => $submitted_promo,
+                            'used' => $default_promo,
+                        ], $instance_id, $submission['id']);
+                        $form_data['promo_code'] = $default_promo;
+                    }
+                }
+            }
+
             // Submit enrollment to API (unless in demo mode)
             if (!$demo_mode) {
                 $api = $this->get_api_client($instance);

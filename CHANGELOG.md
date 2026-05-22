@@ -5,6 +5,16 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.14] - 2026-05-22
+
+### Fixed (enrollment-critical)
+
+- **Invalid promo code no longer kills the whole enrollment (the real "no slots" cause).** IntelliSource rejects the entire enrollment with error 04 ("Invalid or missing promo code") if `pCode` isn't one of its valid codes. The promo code can arrive from a UTM `promo` parameter or stale session data (e.g. `mail`), not just the dropdown — so one bad value silently failed enrollment, which meant no Comverge number and an all-grey scheduler. The enroll path now validates `promo_code` against the live IntelliSource code list and, if it's invalid/empty, substitutes a valid fallback (the instance's `default_promo_code` setting, else the first valid code) and logs the substitution.
+
+### Fixed (frontend)
+
+- **Reliable column alignment via uniform label height.** Replaced the 3.2.13 flex/margin-auto row-alignment (which pushed controls to the cell bottom and offset the Primary/Alternate Phone inputs) with a uniform two-line minimum height on labels in 2- and 3-column rows. Account Number/ZIP, Lease-or-Own/thermostats, and the phone rows now line up regardless of how many lines each label wraps to.
+
 ## [3.2.13] - 2026-05-22
 
 ### Fixed (frontend)

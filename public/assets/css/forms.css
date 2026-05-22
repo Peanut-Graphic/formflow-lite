@@ -337,25 +337,17 @@
     grid-template-columns: repeat(3, 1fr);
 }
 
-/* 3.2.13: keep the inputs/selects in a row aligned even when the labels
-   above them wrap to different numbers of lines (e.g. "Lease or Own" is
-   one line, "Number of thermostats controlling AC/heat pumps" is two).
-   Make each field a flex column inside the (stretched) grid cell and push
-   the control to the bottom so all controls in the row share a baseline. */
-.ff-form-grid-2 > .ff-field,
-.ff-form-grid-3 > .ff-field {
-    display: flex;
-    flex-direction: column;
-}
-.ff-form-grid-2 > .ff-field > .ff-input,
-.ff-form-grid-2 > .ff-field > .ff-select,
-.ff-form-grid-2 > .ff-field > select,
-.ff-form-grid-2 > .ff-field > .ff-input-group,
-.ff-form-grid-3 > .ff-field > .ff-input,
-.ff-form-grid-3 > .ff-field > .ff-select,
-.ff-form-grid-3 > .ff-field > select,
-.ff-form-grid-3 > .ff-field > .ff-input-group {
-    margin-top: auto;
+/* 3.2.14: keep the inputs/selects in a multi-column row aligned even when
+   the labels above them wrap to a different number of lines (e.g. "Lease or
+   Own" is one line vs "Number of thermostats controlling AC/heat pumps" is
+   two; "Delmarva Power Account Number  Where is this?" wraps vs "Service ZIP
+   Code"). Reserve a uniform two-line height for every label in these rows so
+   the control directly beneath each label starts at the same vertical
+   position. (Replaces the 3.2.13 flex/margin-auto approach, which pushed
+   controls to the cell bottom and interacted badly with per-field hints.) */
+.ff-form-grid-2 > .ff-field > .ff-label,
+.ff-form-grid-3 > .ff-field > .ff-label {
+    min-height: 2.6em;
 }
 
 @media (max-width: 600px) {
