@@ -941,10 +941,20 @@ class Frontend {
                 }
                 $fsr_no      = $extract($api_response, ['fsrno', 'fsr', 'fsrNo', 'FSR']);
 
+                // 3.2.13: capture the IntelliSource status + full <message>
+                // subtree so a failed enrollment (no caNo returned) can be
+                // diagnosed — IS puts the rejection reason / error code here.
+                $enroll_status = $extract($api_response, ['status']);
+                $message_dump  = isset($api_response['message'])
+                    ? wp_json_encode($api_response['message'])
+                    : wp_json_encode($api_response);
+
                 $this->db->log('info', 'Early enrollment API response', [
                     'fsr_no' => $fsr_no,
                     'ca_no' => $ca_no,
                     'comverge_no' => $comverge_no,
+                    'enroll_status' => $enroll_status,
+                    'message_dump' => is_string($message_dump) ? substr($message_dump, 0, 900) : '',
                     'response_keys' => array_keys($api_response),
                 ], $instance_id, $submission['id']);
 

@@ -5,6 +5,17 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.13] - 2026-05-22
+
+### Fixed (frontend)
+
+- **Removed the success-checkmark input wrap that was breaking form layout.** Validating a field used to wrap its `<input>` in a full-width inline-flex span to hang a checkmark. That re-parenting knocked paired fields out of alignment (Email / Confirm Email), broke the grouped phone field, and raced the phone/ZIP formatters into `appendChild` errors. Success is now shown by the green border alone; any leftover icon wrap is cleaned up.
+- **Paired dropdowns/inputs in 2- and 3-column rows now align even when their labels wrap to different line counts** (e.g. "Lease or Own" vs "Number of thermostats controlling AC/heat pumps"). Controls are pinned to the bottom of each grid cell so they share a baseline.
+
+### Diagnostics
+
+- **Enrollment failures are now logged with the IntelliSource status and full `<message>` payload.** When `enroll.xml` returns no Comverge number, the activity log now records the IS status code and message body so the rejection reason is visible (previously only the empty result was logged).
+
 ## [3.2.12] - 2026-05-22
 
 ### Fixed (enrollment-critical)

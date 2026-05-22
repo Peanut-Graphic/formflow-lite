@@ -372,47 +372,22 @@
          * Set field success state
          */
         setFieldSuccess: function($field) {
-            if (!this.config.showSuccessIcons) {
-                return;
-            }
-
+            // 3.2.13: Success is now indicated by the green border alone
+            // (.ff-input-valid). The previous implementation wrapped each
+            // <input> in a width:100% inline-flex span to hang a checkmark
+            // icon. That dynamic re-parenting caused a cascade of layout and
+            // stability bugs: it broke the flex layout of grouped phone fields,
+            // knocked paired fields (Email / Confirm Email) out of vertical
+            // alignment, and raced the live formatters on phone + ZIP to throw
+            // "appendChild: node no longer a child". Dropping the wrap removes
+            // the entire class of problems; the border is a sufficient signal.
             $field.addClass('ff-input-valid').removeClass('ff-input-error');
 
-            // 3.2.12: Do NOT wrap inputs that sit inside an .ff-input-group
-            // (e.g. the phone field with its type selector). Wrapping the
-            // <input> in .ff-input-wrap (width:100%) breaks the group's flex
-            // layout and visually clips/shrinks the field. The green border
-            // already signals success for these. Also bail if the node isn't
-            // currently attached, to avoid the jQuery .wrap() "appendChild:
-            // node no longer a child" race with the formatter's blur handler
-            // (was crashing on phone + ZIP fields).
-            if ($field.closest('.ff-input-group').length) {
-                return;
-            }
-            if (!$field[0] || !document.contains($field[0])) {
-                return;
-            }
-
-            // Ensure field is wrapped for icon positioning
-            var $inputWrap = $field.closest('.ff-input-wrap');
-            if (!$inputWrap.length) {
-                // Wrap the input if not already wrapped
-                try {
-                    $field.wrap('<span class="ff-input-wrap"></span>');
-                } catch (e) {
-                    return;
-                }
-                $inputWrap = $field.closest('.ff-input-wrap');
-            }
-
-            // Add success icon if not exists in the wrapper
-            if (!$inputWrap.find('.ff-validation-icon').length) {
-                var successIcon = '<span class="ff-validation-icon ff-validation-success" aria-hidden="true">' +
-                    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" width="18" height="18">' +
-                    '<path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>' +
-                    '</svg></span>';
-
-                $inputWrap.append(successIcon);
+            // Clean up any wrap/icon left over from a previous plugin version
+            // still present in the DOM for this field.
+            var $existingWrap = $field.closest('.ff-input-wrap');
+            if ($existingWrap.length) {
+                $existingWrap.find('.ff-validation-icon').remove();
             }
         },
 

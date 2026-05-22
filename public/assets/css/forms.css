@@ -337,6 +337,27 @@
     grid-template-columns: repeat(3, 1fr);
 }
 
+/* 3.2.13: keep the inputs/selects in a row aligned even when the labels
+   above them wrap to different numbers of lines (e.g. "Lease or Own" is
+   one line, "Number of thermostats controlling AC/heat pumps" is two).
+   Make each field a flex column inside the (stretched) grid cell and push
+   the control to the bottom so all controls in the row share a baseline. */
+.ff-form-grid-2 > .ff-field,
+.ff-form-grid-3 > .ff-field {
+    display: flex;
+    flex-direction: column;
+}
+.ff-form-grid-2 > .ff-field > .ff-input,
+.ff-form-grid-2 > .ff-field > .ff-select,
+.ff-form-grid-2 > .ff-field > select,
+.ff-form-grid-2 > .ff-field > .ff-input-group,
+.ff-form-grid-3 > .ff-field > .ff-input,
+.ff-form-grid-3 > .ff-field > .ff-select,
+.ff-form-grid-3 > .ff-field > select,
+.ff-form-grid-3 > .ff-field > .ff-input-group {
+    margin-top: auto;
+}
+
 @media (max-width: 600px) {
     .ff-form-grid-2,
     .ff-form-grid-3 {
