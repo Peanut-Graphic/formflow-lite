@@ -394,6 +394,40 @@ $wizard_steps = [
                                     </div>
                                 </div>
 
+                                <!-- IntelliSource Device & Location Codes Pod -->
+                                <?php
+                                $cfg_dd_thermostat = $instance['settings']['device_code_thermostat'] ?? '03';
+                                $cfg_dd_dcu        = $instance['settings']['device_code_dcu'] ?? '02';
+                                $cfg_eq_location   = $instance['settings']['equipment_location'] ?? '05';
+                                ?>
+                                <div class="ff-pod ff-pod-full">
+                                    <div class="ff-pod-header">
+                                        <h3><span class="dashicons dashicons-admin-generic"></span><?php esc_html_e('IntelliSource Device Codes', 'formflow-lite'); ?></h3>
+                                    </div>
+                                    <div class="ff-pod-body">
+                                        <p class="description" style="margin: 0 0 14px;">
+                                            <?php esc_html_e('Codes sent to IntelliSource that determine which device is provisioned and where. These vary by program — confirm the current values with your Comverge / IntelliSource contact. Defaults: thermostat 03, outdoor switch (DCU) 02, location 05.', 'formflow-lite'); ?>
+                                        </p>
+                                        <div class="ff-field">
+                                            <label for="device_code_thermostat" class="ff-field-label"><?php esc_html_e('Thermostat device code (dd-15)', 'formflow-lite'); ?></label>
+                                            <input type="text" id="device_code_thermostat" name="settings[device_code_thermostat]" class="ff-field-input"
+                                                   value="<?php echo esc_attr($cfg_dd_thermostat); ?>" placeholder="03">
+                                            <p class="description"><?php esc_html_e('e.g. the code for Sensi WiFi. (03 currently resolves to IntelliTemp on this deployment.)', 'formflow-lite'); ?></p>
+                                        </div>
+                                        <div class="ff-field">
+                                            <label for="device_code_dcu" class="ff-field-label"><?php esc_html_e('Outdoor switch / DCU device code (dd-15)', 'formflow-lite'); ?></label>
+                                            <input type="text" id="device_code_dcu" name="settings[device_code_dcu]" class="ff-field-input"
+                                                   value="<?php echo esc_attr($cfg_dd_dcu); ?>" placeholder="02">
+                                        </div>
+                                        <div class="ff-field">
+                                            <label for="equipment_location" class="ff-field-label"><?php esc_html_e('Equipment location code (eqLoc-15)', 'formflow-lite'); ?></label>
+                                            <input type="text" id="equipment_location" name="settings[equipment_location]" class="ff-field-input"
+                                                   value="<?php echo esc_attr($cfg_eq_location); ?>" placeholder="05">
+                                            <p class="description"><?php esc_html_e('Install location code (e.g. Interior). 05 currently resolves to "roof-multi-story" — update once Comverge confirms the correct code.', 'formflow-lite'); ?></p>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Demo Accounts Pod (shown only in demo mode) -->
                                 <?php $demo_accounts = \FFFL\Api\MockApiClient::get_demo_accounts_info(); ?>
                                 <div class="ff-pod ff-pod-full ff-demo-accounts" id="ff-demo-accounts" style="display: <?php echo ($instance['settings']['demo_mode'] ?? false) ? 'block' : 'none'; ?>;">

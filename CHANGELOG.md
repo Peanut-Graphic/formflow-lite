@@ -5,6 +5,12 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.19] - 2026-05-23
+
+### Added
+
+- **Configurable IntelliSource device + location codes.** The desired-device codes (`dd-15`) and equipment-location code (`eqLoc-15`) are now set per instance in the form editor (**API** step → "IntelliSource Device Codes"): thermostat device code, outdoor-switch/DCU device code, and equipment location code, defaulting to `03` / `02` / `05`. These values are applied to both enrollment and scheduling. IntelliSource has changed what these codes map to over time (`03` now resolves to IntelliTemp, `05` to "roof-multi-story" on the current deployment), so this removes the need for a plugin release whenever Comverge updates a code — set the Sensi WiFi and correct location codes here once your Comverge contact confirms them.
+
 ## [3.2.18] - 2026-05-22
 
 ### Fixed

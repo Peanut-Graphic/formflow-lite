@@ -679,6 +679,25 @@ class Frontend {
      * @param array  $instance
      * @return string
      */
+    /**
+     * Inject the instance's configured IntelliSource device + location codes
+     * into form data so the field mapper / scheduling use them. 3.2.19 — these
+     * are configurable because IntelliSource changes what the codes map to.
+     *
+     * @param array $instance
+     * @param array $form_data
+     * @return array form_data with _dd_code and _eqloc_code set
+     */
+    private function apply_device_codes(array $instance, array $form_data): array {
+        $settings = $instance['settings'] ?? [];
+        $device_type = $form_data['device_type'] ?? 'thermostat';
+        $form_data['_dd_code'] = ($device_type === 'dcu')
+            ? ($settings['device_code_dcu'] ?? '02')
+            : ($settings['device_code_thermostat'] ?? '03');
+        $form_data['_eqloc_code'] = $settings['equipment_location'] ?? '05';
+        return $form_data;
+    }
+
     private function map_enrollment_error(string $code, string $api_msg, array $instance): string {
         $phone = $instance['support_phone']
             ?? ($instance['settings']['support_phone'] ?? '');
@@ -966,7 +985,8 @@ class Frontend {
             if (!$demo_mode) {
                 $api = $this->get_api_client($instance);
 
-                // Call enrollment API
+                // Call enrollment API (with the instance's configured device/location codes)
+                $form_data = $this->apply_device_codes($instance, $form_data);
                 $api_response = $api->enroll($form_data);
                 $enrollment_response = $api_response;
 
@@ -1176,13 +1196,13 @@ class Frontend {
             $equipment = [];
             $device_type = $form_data['device_type'] ?? 'thermostat';
             $unit_count = max(1, (int) ($form_data['thermostat_count'] ?? 1));
-            if ($device_type === 'dcu') {
-                // Outdoor switch (DCU)
-                $equipment['15'] = ['count' => $unit_count, 'location' => '05', 'desired_device' => '02'];
-            } else {
-                // Sensei WiFi thermostat
-                $equipment['15'] = ['count' => $unit_count, 'location' => '05', 'desired_device' => '03'];
-            }
+            // 3.2.19: use the instance's configured device + location codes.
+            $codes = $this->apply_device_codes($instance, $form_data);
+            $equipment['15'] = [
+                'count' => $unit_count,
+                'location' => $codes['_eqloc_code'],
+                'desired_device' => $codes['_dd_code'],
+            ];
 
             $result = $api->get_schedule_slots($account_number, $start_date, $equipment);
 
@@ -1346,6 +1366,7 @@ class Frontend {
 
                     // The API client's enroll() method will use FieldMapper to convert
                     // our form field names to the API's expected parameter names
+                    $form_data = $this->apply_device_codes($instance, $form_data);
                     $api_response = $api->enroll($form_data);
 
                     // Extract confirmation number from API response if available

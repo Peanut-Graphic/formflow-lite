@@ -1027,6 +1027,19 @@ class Admin {
             $new_settings['support_phone'] = sanitize_text_field($new_settings['support_phone']);
         }
 
+        // 3.2.19: IntelliSource device/location codes (alphanumeric codes).
+        // Blank entries are dropped so the runtime defaults (03/02/05) apply.
+        foreach (['device_code_thermostat', 'device_code_dcu', 'equipment_location'] as $code_key) {
+            if (isset($new_settings[$code_key])) {
+                $code_val = preg_replace('/[^A-Za-z0-9]/', '', (string) $new_settings[$code_key]);
+                if ($code_val === '') {
+                    unset($new_settings[$code_key]);
+                } else {
+                    $new_settings[$code_key] = $code_val;
+                }
+            }
+        }
+
         // Process promo code filtering - convert comma-separated strings to arrays
         if (isset($new_settings['promo_codes_allowed'])) {
             $allowed = $new_settings['promo_codes_allowed'];

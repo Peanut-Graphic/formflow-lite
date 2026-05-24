@@ -221,6 +221,10 @@
                 support_phone: $form.find('input[name="settings[support_phone]"]').val(),
                 promo_codes_allowed: $form.find('textarea[name="settings[promo_codes_allowed]"]').val() || '',
                 promo_codes_hidden: $form.find('textarea[name="settings[promo_codes_hidden]"]').val() || '',
+                // 3.2.19: configurable IntelliSource device + location codes
+                device_code_thermostat: $form.find('input[name="settings[device_code_thermostat]"]').val() || '',
+                device_code_dcu: $form.find('input[name="settings[device_code_dcu]"]').val() || '',
+                equipment_location: $form.find('input[name="settings[equipment_location]"]').val() || '',
                 content: {}
             };
 

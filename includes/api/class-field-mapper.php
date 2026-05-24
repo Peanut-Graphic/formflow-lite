@@ -186,26 +186,28 @@ class FieldMapper {
         }
         $api_params['dayPhoneExt'] = ''; // Required field, can be empty
 
-        // Equipment location and count
-        $api_params['eqLoc-15'] = '05'; // 05 = Interior
+        // Equipment location and count.
+        // 3.2.19: the device + location codes are now configurable per instance
+        // (Form editor → API → "IntelliSource Device Codes") because IntelliSource
+        // has changed what these codes map to over time (03 → IntelliTemp,
+        // 05 → roof-multi-story on the current deployment). The configured values
+        // are passed in via _eqloc_code / _dd_code; fall back to the historical
+        // defaults when unset.
+        $api_params['eqLoc-15'] = $form_data['_eqloc_code'] ?? '05';
         if (!isset($api_params['eqCount-15'])) {
             $api_params['eqCount-15'] = $form_data['thermostat_count'] ?? '1';
         }
 
-        // Desired device based on type.
-        // Device codes (must match the values IntelliSource maps to its device
-        // catalog): '02' = DCU (outdoor switch), '03' = Sensei WiFi thermostat.
-        // NOTE: 3.2.10 — was '05' here, which IntelliSource maps to IntelliTemp,
-        // not Sensei WiFi. The legacy production enrollment form sent '03' for
-        // thermostats; restored to match so enrollments register as Sensei WiFi.
+        // Desired device based on type (configurable; defaults: thermostat 03,
+        // DCU 02).
         if ($device_type === 'dcu') {
-            $api_params['dd-15'] = '02'; // DCU
+            $api_params['dd-15'] = $form_data['_dd_code'] ?? '02';
             // Determine if scheduling is required for DCU
             $easy_access = $form_data['easy_access'] ?? 'Yes';
             $install_time = $form_data['install_time'] ?? 'Anytime';
             $api_params['mustSchedule'] = ($easy_access === 'No' || $install_time === 'Appointment') ? 'Y' : 'N';
         } else {
-            $api_params['dd-15'] = '03'; // Sensei WiFi thermostat
+            $api_params['dd-15'] = $form_data['_dd_code'] ?? '03';
         }
 
         // Additional required fields
