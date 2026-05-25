@@ -226,8 +226,8 @@ export default function Scheduling() {
       >
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Form</label>
-            <select
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="scheduling-form">Form</label>
+            <select id="scheduling-form"
               value={formData.form_id}
               onChange={(e) => setFormData({ ...formData, form_id: e.target.value })}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -240,8 +240,8 @@ export default function Scheduling() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Day of Week</label>
-            <select
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="scheduling-day-of-week">Day of Week</label>
+            <select id="scheduling-day-of-week"
               value={formData.day_of_week}
               onChange={(e) => setFormData({ ...formData, day_of_week: e.target.value })}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -254,8 +254,8 @@ export default function Scheduling() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Start Time</label>
-              <input
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="scheduling-start-time">Start Time</label>
+              <input id="scheduling-start-time"
                 type="time"
                 value={formData.start_time}
                 onChange={(e) => setFormData({ ...formData, start_time: e.target.value })}
@@ -263,8 +263,8 @@ export default function Scheduling() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">End Time</label>
-              <input
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="scheduling-end-time">End Time</label>
+              <input id="scheduling-end-time"
                 type="time"
                 value={formData.end_time}
                 onChange={(e) => setFormData({ ...formData, end_time: e.target.value })}

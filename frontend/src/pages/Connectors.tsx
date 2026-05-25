@@ -297,8 +297,8 @@ export default function Connectors() {
           />
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Authentication</label>
-            <select
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="connectors-authentication">Authentication</label>
+            <select id="connectors-authentication"
               value={formData.auth_type}
               onChange={(e) => setFormData({ ...formData, auth_type: e.target.value as typeof formData.auth_type })}
               className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"

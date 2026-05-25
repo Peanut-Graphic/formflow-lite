@@ -1,0 +1,33 @@
+{
+  "src/components/common/InfoPanel.tsx": {
+    "jsx-a11y/click-events-have-key-events": {
+      "count": 1
+    },
+    "jsx-a11y/no-static-element-interactions": {
+      "count": 1
+    }
+  },
+  "src/components/common/Modal.tsx": {
+    "jsx-a11y/click-events-have-key-events": {
+      "count": 1
+    },
+    "jsx-a11y/no-noninteractive-element-interactions": {
+      "count": 1
+    }
+  },
+  "src/pages/Connectors.tsx": {
+    "jsx-a11y/label-has-associated-control": {
+      "count": 1
+    }
+  },
+  "src/pages/Submissions.tsx": {
+    "jsx-a11y/label-has-associated-control": {
+      "count": 6
+    }
+  },
+  "src/pages/Webhooks.tsx": {
+    "jsx-a11y/label-has-associated-control": {
+      "count": 1
+    }
+  }
+}

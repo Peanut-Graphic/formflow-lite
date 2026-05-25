@@ -34,7 +34,7 @@ jobs:
       - name: ESLint with jsx-a11y
         continue-on-error: true
         run: |
-          npx eslint --ext .js,.jsx,.ts,.tsx src/ \
+          npm run lint:a11y
             --rule 'jsx-a11y/alt-text: warn' \
             --rule 'jsx-a11y/anchor-has-content: warn' \
             --rule 'jsx-a11y/aria-props: error' \

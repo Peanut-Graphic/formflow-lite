@@ -132,10 +132,10 @@ export default function Settings() {
         </div>
         <div className="p-4 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="settings-default-form-status">
               Default Form Status
             </label>
-            <select
+            <select id="settings-default-form-status"
               value={settings.general.default_status}
               onChange={(e) => updateSettings('general', 'default_status', e.target.value as 'draft' | 'active')}
               className="w-full max-w-xs px-3 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-teal-500"
@@ -145,10 +145,10 @@ export default function Settings() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="settings-submissions-per-page">
               Submissions Per Page
             </label>
-            <input
+            <input id="settings-submissions-per-page"
               type="number"
               min="10"
               max="100"
@@ -242,10 +242,10 @@ export default function Settings() {
           />
           {settings.security.rate_limiting && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="settings-max-submissions-per-minute">
                 Max Submissions Per Minute
               </label>
-              <input
+              <input id="settings-max-submissions-per-minute"
                 type="number"
                 min="1"
                 max="100"
@@ -263,10 +263,10 @@ export default function Settings() {
           />
           {settings.security.require_consent && (
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="settings-consent-text">
                 Consent Text
               </label>
-              <textarea
+              <textarea id="settings-consent-text"
                 value={settings.security.consent_text}
                 onChange={(e) => updateSettings('security', 'consent_text', e.target.value)}
                 rows={3}
@@ -297,10 +297,10 @@ export default function Settings() {
             description="Inherit styles from your WordPress theme"
           />
           <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1" htmlFor="settings-custom-css">
               Custom CSS
             </label>
-            <textarea
+            <textarea id="settings-custom-css"
               value={settings.styling.custom_css}
               onChange={(e) => updateSettings('styling', 'custom_css', e.target.value)}
               rows={6}
