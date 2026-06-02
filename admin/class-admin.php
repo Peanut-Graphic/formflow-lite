@@ -524,75 +524,6 @@ class Admin {
     }
 
     /**
-     * Render the logs page
-     */
-    public function render_logs(): void {
-        $instances = $this->db->get_instances();
-
-        // Get filter parameters
-        $filters = [
-            'instance_id' => isset($_GET['instance_id']) ? (int)$_GET['instance_id'] : 0,
-            'status' => isset($_GET['status']) ? sanitize_text_field($_GET['status']) : '',
-            'type' => isset($_GET['type']) ? sanitize_text_field($_GET['type']) : '',
-            'date_from' => isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : '',
-            'date_to' => isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : '',
-            'search' => isset($_GET['search']) ? sanitize_text_field($_GET['search']) : ''
-        ];
-
-        // Pagination
-        $page = isset($_GET['paged']) ? max(1, (int)$_GET['paged']) : 1;
-        $per_page = 50;
-        $offset = ($page - 1) * $per_page;
-
-        // Get data based on view type
-        $view = isset($_GET['view']) ? sanitize_text_field($_GET['view']) : 'submissions';
-
-        // Debug view doesn't need data - it fetches its own
-        $items = [];
-        $total_items = 0;
-        $total_pages = 0;
-
-        if ($view === 'logs') {
-            $items = $this->db->get_logs($filters, $per_page, $offset);
-            $total_items = count($this->db->get_logs($filters, 10000, 0));
-            $total_pages = ceil($total_items / $per_page);
-        } elseif ($view !== 'debug') {
-            $items = $this->db->get_submissions($filters, $per_page, $offset);
-            $total_items = $this->db->get_submission_count($filters);
-            $total_pages = ceil($total_items / $per_page);
-        }
-
-        include FFFL_PLUGIN_DIR . 'admin/views/logs.php';
-    }
-
-    /**
-     * Render the analytics page
-     */
-    public function render_analytics(): void {
-        $instances = $this->db->get_instances();
-
-        // Get filter parameters
-        $instance_id = isset($_GET['instance_id']) ? (int)$_GET['instance_id'] : 0;
-        $date_from = isset($_GET['date_from']) ? sanitize_text_field($_GET['date_from']) : date('Y-m-d', strtotime('-30 days'));
-        $date_to = isset($_GET['date_to']) ? sanitize_text_field($_GET['date_to']) : date('Y-m-d');
-        $show_test = isset($_GET['show_test']) ? (bool)$_GET['show_test'] : false;
-        $exclude_test = !$show_test;
-
-        // Get test data counts
-        $test_counts = $this->db->get_test_data_counts($instance_id ?: null);
-
-        // Get analytics data (pass exclude_test flag)
-        $summary = $this->db->get_analytics_summary($instance_id ?: null, $date_from, $date_to, $exclude_test);
-        $funnel = $this->db->get_funnel_analytics($instance_id ?: null, $date_from, $date_to, $exclude_test);
-        $timing = $this->db->get_step_timing_analytics($instance_id ?: null, $date_from, $date_to, $exclude_test);
-        $dropoff = $this->db->get_dropoff_analysis($instance_id ?: null, $date_from, $date_to, $exclude_test);
-        $devices = $this->db->get_device_analytics($instance_id ?: null, $date_from, $date_to, $exclude_test);
-        $daily = $this->db->get_daily_analytics($instance_id ?: null, 30, $exclude_test);
-
-        include FFFL_PLUGIN_DIR . 'admin/views/analytics.php';
-    }
-
-    /**
      * Render the combined Data page (Submissions + Analytics + Activity)
      */
     public function render_data(): void {
@@ -862,41 +793,6 @@ class Admin {
         }
 
         return date('m/d/Y', strtotime("+{$days_to_add} days"));
-    }
-
-    /**
-     * Render the settings page
-     */
-    public function render_settings(): void {
-        // Handle form submission
-        if (isset($_POST['fffl_save_settings']) && check_admin_referer('fffl_settings_nonce')) {
-            $this->save_settings();
-        }
-
-        $settings = get_option('fffl_settings', []);
-
-        include FFFL_PLUGIN_DIR . 'admin/views/settings.php';
-    }
-
-    /**
-     * Render the webhooks page
-     */
-    public function render_webhooks(): void {
-        require_once FFFL_PLUGIN_DIR . 'includes/class-webhook-handler.php';
-
-        $instances = $this->db->get_instances();
-        $webhooks = $this->db->get_webhooks();
-
-        include FFFL_PLUGIN_DIR . 'admin/views/webhooks.php';
-    }
-
-    /**
-     * Render the diagnostics page
-     */
-    public function render_diagnostics(): void {
-        $instances = $this->db->get_instances();
-
-        include FFFL_PLUGIN_DIR . 'admin/views/diagnostics.php';
     }
 
     /**
@@ -2620,21 +2516,6 @@ class Admin {
     // =========================================================================
     // Compliance Page & AJAX Handlers (GDPR, Audit Log, Data Retention)
     // =========================================================================
-
-    /**
-     * Render the compliance page
-     */
-    public function render_compliance(): void {
-        // Handle retention settings form submission
-        if (isset($_POST['fffl_save_retention']) && check_admin_referer('fffl_retention_nonce')) {
-            $this->save_retention_settings();
-        }
-
-        $instances = $this->db->get_instances();
-        $settings = get_option('fffl_settings', []);
-
-        include FFFL_PLUGIN_DIR . 'admin/views/compliance.php';
-    }
 
     /**
      * Save retention policy settings from form POST
