@@ -30,21 +30,12 @@ $base_url = admin_url('admin.php?page=fffl-automation');
             <span class="dashicons dashicons-rest-api"></span>
             <?php esc_html_e('Webhooks', 'formflow-lite'); ?>
         </a>
-        <a href="<?php echo esc_url(add_query_arg('tab', 'reports', $base_url)); ?>"
-           class="nav-tab <?php echo ($tab === 'reports') ? 'nav-tab-active' : ''; ?>">
-            <span class="dashicons dashicons-email-alt"></span>
-            <?php esc_html_e('Scheduled Reports', 'formflow-lite'); ?>
-        </a>
     </nav>
 
     <div class="ff-tab-content">
         <?php if ($tab === 'webhooks') : ?>
             <!-- Webhooks Tab -->
             <?php include FFFL_PLUGIN_DIR . 'admin/views/tabs/automation-webhooks.php'; ?>
-
-        <?php elseif ($tab === 'reports') : ?>
-            <!-- Reports Tab -->
-            <?php include FFFL_PLUGIN_DIR . 'admin/views/tabs/automation-reports.php'; ?>
 
         <?php endif; ?>
     </div>
