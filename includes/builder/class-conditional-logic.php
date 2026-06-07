@@ -86,7 +86,21 @@ class ConditionalLogic {
                 return strpos((string) $field_value, (string) $value) === 0;
 
             case 'ends_with':
-                return substr((string) $field_value, -strlen($value)) === $value;
+                // Guard against an empty needle: strlen('') === 0, and substr($s, -0)
+                // returns the WHOLE string (PHP: -0 === 0), which would never equal ''.
+                // Every string ends with the empty string, so return true. [CLASS-007]
+                $needle = (string) $value;
+                if ($needle === '') {
+                    return true;
+                }
+                $haystack = (string) $field_value;
+                $needle_len = strlen($needle);
+                if (strlen($haystack) < $needle_len) {
+                    return false;
+                }
+                // Explicit non-negative offset avoids substr($s, -$n) leaking the whole
+                // string when $n is 0 (handled by the empty-needle guard above). [CLASS-007]
+                return substr($haystack, strlen($haystack) - $needle_len) === $needle;
 
             case 'greater_than':
                 return floatval($field_value) > floatval($value);

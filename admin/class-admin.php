@@ -903,7 +903,7 @@ class Admin {
 
         // Parse settings from JSON if provided
         $new_settings = [];
-        if (!empty($_POST['settings'])) {
+        if (isset($_POST['settings']) && $_POST['settings'] !== '') {
             $decoded = json_decode(stripslashes($_POST['settings']), true);
             if (is_array($decoded)) {
                 $new_settings = $decoded;
@@ -956,7 +956,7 @@ class Admin {
 
         // Merge with existing settings and add demo_mode
         $settings = array_merge($existing_settings, $new_settings, [
-            'demo_mode' => !empty($_POST['demo_mode']) && $_POST['demo_mode'] !== '0'
+            'demo_mode' => isset($_POST['demo_mode']) && $_POST['demo_mode'] !== '' && $_POST['demo_mode'] !== '0'
         ]);
 
         $data = [
@@ -968,8 +968,8 @@ class Admin {
             'api_password' => $_POST['api_password'] ?? '',
             'support_email_from' => sanitize_email($_POST['support_email_from'] ?? ''),
             'support_email_to' => sanitize_textarea_field($_POST['support_email_to'] ?? ''),
-            'is_active' => !empty($_POST['is_active']) && $_POST['is_active'] !== '0' ? 1 : 0,
-            'test_mode' => !empty($_POST['test_mode']) && $_POST['test_mode'] !== '0' ? 1 : 0,
+            'is_active' => isset($_POST['is_active']) && $_POST['is_active'] !== '' && $_POST['is_active'] !== '0' ? 1 : 0,
+            'test_mode' => isset($_POST['test_mode']) && $_POST['test_mode'] !== '' && $_POST['test_mode'] !== '0' ? 1 : 0,
             'settings' => $settings
         ];
 
