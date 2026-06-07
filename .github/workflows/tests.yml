@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  static-footguns:
+    name: CLASS-007 static foot-gun gate
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install semgrep
+        run: pip install semgrep
+
+      - name: Run CLASS-007 PHP foot-gun rule (blocking)
+        run: semgrep --config .peanut/static-rules/peanut-php-footguns.yml includes/ --error
