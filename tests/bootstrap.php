@@ -36,6 +36,25 @@ if (file_exists($_tests_dir . '/includes/functions.php')) {
     require_once __DIR__ . '/mocks/wordpress-mocks.php';
 }
 
+// Net 6 (property) + net 7 (contract) target PURE PHP classes that must be
+// loadable without a full plugin boot. Require them here (guarded) so the
+// Property/ and Contract/ suites are collectable under this top-level config
+// as well as via their dedicated phpunit.property.xml / phpunit.contract.xml.
+if (!defined('ABSPATH')) {
+    define('ABSPATH', sys_get_temp_dir() . '/fffl-tests/');
+}
+foreach ([
+    '/includes/class-security.php',
+    '/includes/api/class-xml-parser.php',
+    '/includes/api/class-response-validator.php',
+] as $__fffl_pure_class) {
+    $__fffl_path = dirname(__DIR__) . $__fffl_pure_class;
+    if (file_exists($__fffl_path)) {
+        require_once $__fffl_path;
+    }
+}
+unset($__fffl_pure_class, $__fffl_path);
+
 /**
  * Base test case class for FormFlow Lite.
  */

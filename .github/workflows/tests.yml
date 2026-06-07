@@ -1,0 +1,53 @@
+# FormFlow Lite — test + security gate (Testing Protocol v2 nets)
+#
+# Realistic scope: the property (net 6) and contract (net 7) suites are PURE PHP
+# and need no WordPress boot, so they are the blocking gate. composer audit
+# (net 2) runs non-blocking for now and is wired to ratchet to blocking later.
+name: tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  security:
+    name: Net 2 — dependency audit (non-blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          tools: composer
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+      - name: composer audit
+        # Start non-blocking; ratchet to blocking once the tree is clean.
+        run: composer audit --no-interaction || true
+
+  php-tests:
+    name: Net 6 + 7 — property & contract (blocking)
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        php-version: [ "8.2", "8.3" ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: xml
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Property tests (net 6)
+        run: vendor/bin/phpunit -c phpunit.property.xml
+
+      - name: Contract tests (net 7)
+        run: vendor/bin/phpunit -c phpunit.contract.xml
