@@ -86,6 +86,16 @@ class XmlParser {
                     // Opening tag: descend into this element
                     $parent[$level - 1] = &$current;
 
+                    // An opening tag will gain children, so the slot we descend
+                    // into must be an array container. In attribute mode
+                    // build_result() already returns an array; in no-attribute
+                    // mode it returns a string leaf, so promote it to an array
+                    // container here (otherwise the next child would dereference
+                    // a string as an array and throw a TypeError).
+                    if (!$get_attributes && !is_array($result)) {
+                        $result = [];
+                    }
+
                     if (!is_array($current) || !array_key_exists($tag, $current)) {
                         // New tag
                         $current[$tag] = $result;

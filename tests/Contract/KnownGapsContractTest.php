@@ -15,29 +15,30 @@ use PHPUnit\Framework\TestCase;
 final class KnownGapsContractTest extends TestCase
 {
     /**
-     * BUG (latent): XmlParser::parse_simple() / parse($xml, false) crashes with
-     * a TypeError ("Cannot access offset of type string on string") on ANY
-     * nested XML, because in no-attribute mode an opening tag stores a *string*
-     * as $current[$tag] and then descends into it, so the next child element
-     * dereferences a string as an array (class-xml-parser.php:108).
+     * REGRESSION: XmlParser::parse_simple() / parse($xml, false) previously
+     * crashed with a TypeError ("Cannot access offset of type string on
+     * string") on ANY nested XML, because in no-attribute mode an opening tag
+     * stored a *string* as $current[$tag] and then descended into it, so the
+     * next child element dereferenced a string as an array
+     * (class-xml-parser.php, 'open' case).
      *
-     * Production only ever calls parse() in attribute mode, so this is latent
-     * (a footgun for future callers), not a live failure — hence skipped, not
-     * asserted as correct. Counter-example documented below; do NOT weaken.
-     *
-     * Tracked in known-gaps.md.
+     * Fixed by promoting the no-attribute leaf to an array container when a tag
+     * opens (mirrors attribute-mode descent). This test pins the correct nested
+     * structure so the gap cannot silently reopen.
      */
-    public function testParseSimpleNestedXmlIsBroken(): void
+    public function testParseSimpleParsesNestedXml(): void
     {
-        $this->markTestSkipped(
-            'XmlParser::parse_simple() throws TypeError on nested XML '
-            . '(class-xml-parser.php:108). Counter-example: '
-            . '"<message><status>SUCCESS</status></message>". '
-            . 'Latent (prod uses attribute-mode parse()). Tracked in known-gaps.md.'
+        // Single level of nesting (the documented counter-example).
+        $this->assertSame(
+            ['message' => ['status' => 'SUCCESS']],
+            XmlParser::parse_simple('<message><status>SUCCESS</status></message>')
         );
 
-        // For the record, the failing call (kept unreachable behind the skip):
-        XmlParser::parse_simple('<message><status>SUCCESS</status></message>');
+        // Deeper nesting must also descend correctly, not throw.
+        $this->assertSame(
+            ['a' => ['b' => ['c' => 'X']]],
+            XmlParser::parse_simple('<a><b><c>X</c></b></a>')
+        );
     }
 
     /**
