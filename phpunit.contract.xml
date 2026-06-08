@@ -5,7 +5,7 @@
     bootstrap="tests/Contract/bootstrap.php"
     colors="true"
     failOnWarning="true"
-    cacheDirectory=".phpunit.cache"
+    cacheResultFile=".phpunit.cache/contract.result.cache"
 >
     <testsuites>
         <testsuite name="contract">

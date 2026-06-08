@@ -149,7 +149,11 @@ class Encryption {
         }
 
         $start = substr($data, 0, $visible_start);
-        $end = substr($data, -$visible_end);
+        // Use an explicit non-negative offset instead of substr($data, -$visible_end):
+        // when $visible_end === 0, substr($data, -0) returns the WHOLE string
+        // (PHP: -0 === 0), which would leak all of $data. The early length check above
+        // guarantees ($length - $visible_end) is a valid non-negative offset. [CLASS-007]
+        $end = substr($data, $length - $visible_end);
         $middle = str_repeat('*', $length - $visible_start - $visible_end);
 
         return $start . $middle . $end;

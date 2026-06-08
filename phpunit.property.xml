@@ -6,7 +6,7 @@
     colors="true"
     failOnWarning="true"
     failOnRisky="true"
-    cacheDirectory=".phpunit.cache"
+    cacheResultFile=".phpunit.cache/property.result.cache"
 >
     <testsuites>
         <testsuite name="property">
