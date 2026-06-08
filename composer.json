@@ -1,6 +1,6 @@
 {
     "name": "peanutgraphic/formflow-lite",
-    "description": "FormFlow Lite - Lightweight API-integrated enrollment forms WordPress Plugin",
+    "description": "FormFlow Lite — API-integrated enrollment forms (free tier, FFFL namespace).",
     "type": "wordpress-plugin",
     "license": "GPL-2.0-or-later",
     "require": {
@@ -16,11 +16,17 @@
             "FFFL\\Tests\\": "tests/"
         }
     },
+    "config": {
+        "sort-packages": true,
+        "optimize-autoloader": true,
+        "platform": {
+            "php": "8.2.0"
+        }
+    },
     "scripts": {
         "test": "phpunit",
+        "test:property": "phpunit -c phpunit.property.xml",
+        "test:contract": "phpunit -c phpunit.contract.xml",
         "test:contract-wp": "phpunit -c phpunit.contract-wp.xml"
-    },
-    "config": {
-        "sort-packages": true
     }
 }

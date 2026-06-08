@@ -1,32 +1,41 @@
 <?xml version="1.0"?>
 <phpunit
-	bootstrap="tests/bootstrap.php"
-	backupGlobals="false"
-	colors="true"
-	convertErrorsToExceptions="true"
-	convertNoticesToExceptions="true"
-	convertWarningsToExceptions="true"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="tests/bootstrap.php"
+    backupGlobals="false"
+    colors="true"
+    cacheDirectory=".phpunit.cache"
 >
-	<testsuites>
-		<testsuite name="FormFlow Lite Test Suite">
-			<directory prefix="test-" suffix=".php">./tests/</directory>
-		</testsuite>
-		<testsuite name="regression">
-			<directory suffix="Test.php">./tests/Regression/</directory>
-		</testsuite>
-	</testsuites>
-	<filter>
-		<whitelist processUncoveredFilesFromWhitelist="true">
-			<directory suffix=".php">./includes/</directory>
-			<directory suffix=".php">./admin/</directory>
-			<directory suffix=".php">./public/</directory>
-			<exclude>
-				<directory suffix=".php">./vendor/</directory>
-				<directory suffix=".php">./node_modules/</directory>
-			</exclude>
-		</whitelist>
-	</filter>
-	<php>
-		<const name="FFFL_TEST_MODE" value="true"/>
-	</php>
+    <testsuites>
+        <!-- Net 6: property-based / fuzz tests (pure functions, no WP). -->
+        <testsuite name="property">
+            <directory suffix="Test.php">./tests/Property/</directory>
+        </testsuite>
+        <!-- Net 7: seam contract tests (pure API/XML contract, no WP). -->
+        <testsuite name="contract">
+            <directory suffix="Test.php">./tests/Contract/</directory>
+        </testsuite>
+        <!-- Legacy WordPress-mock unit + regression suites. -->
+        <testsuite name="unit">
+            <directory suffix="Test.php">./tests/Unit/</directory>
+        </testsuite>
+        <testsuite name="regression">
+            <directory suffix="Test.php">./tests/Regression/</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">./includes/</directory>
+            <directory suffix=".php">./admin/</directory>
+            <directory suffix=".php">./public/</directory>
+        </include>
+        <exclude>
+            <directory suffix=".php">./vendor/</directory>
+            <directory suffix=".php">./node_modules/</directory>
+        </exclude>
+    </source>
+    <php>
+        <const name="FFFL_TEST_MODE" value="true"/>
+    </php>
 </phpunit>
