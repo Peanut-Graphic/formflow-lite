@@ -21,7 +21,7 @@ concurrency:
 jobs:
   static-footguns:
     name: CLASS-007 static foot-gun gate
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, peanut-ci]
 
     steps:
       - name: Checkout code
@@ -40,7 +40,7 @@ jobs:
 
   security:
     name: Net 2 — dependency audit (non-blocking)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, peanut-ci]
     steps:
       - uses: actions/checkout@v4
       - uses: shivammathur/setup-php@v2
@@ -55,7 +55,7 @@ jobs:
 
   php-tests:
     name: Net 6 + 7 — property & contract (blocking)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, peanut-ci]
     strategy:
       fail-fast: true
       matrix:
