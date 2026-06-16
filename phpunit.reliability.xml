@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<phpunit
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+    bootstrap="tests/Reliability/bootstrap.php"
+    colors="true"
+    failOnWarning="true"
+    cacheResultFile=".phpunit.cache/reliability.result.cache"
+>
+    <testsuites>
+        <testsuite name="reliability">
+            <directory suffix="Test.php">tests/Reliability</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
