@@ -115,6 +115,22 @@ function fffl_activate() {
 register_activation_hook(__FILE__, 'fffl_activate');
 
 /**
+ * Migration-on-upgrade / schema self-heal.
+ *
+ * register_activation_hook only fires on manual (re)activation, so a schema
+ * change shipped via auto-update would never reach an already-active install.
+ * Run a cheap version/schema check on every load instead — see
+ * FFFL\Activator::maybe_upgrade(). Hooked at default priority on
+ * plugins_loaded so $wpdb is ready but well before our `init` bootstrap that
+ * starts reading/writing tables.
+ */
+function fffl_maybe_upgrade() {
+    require_once FFFL_PLUGIN_DIR . 'includes/class-activator.php';
+    FFFL\Activator::maybe_upgrade();
+}
+add_action('plugins_loaded', 'fffl_maybe_upgrade');
+
+/**
  * Deactivation hook
  */
 function fffl_deactivate() {
