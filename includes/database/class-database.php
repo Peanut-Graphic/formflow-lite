@@ -25,6 +25,13 @@ class Database {
     private Encryption $encryption;
 
     /**
+     * Per-request cache of table-existence checks, keyed by full table name.
+     *
+     * @var array<string,bool>
+     */
+    private static array $table_exists_cache = [];
+
+    /**
      * Constructor
      */
     public function __construct() {
@@ -36,6 +43,48 @@ class Database {
         // Analytics table placeholder - queries will return empty results
         $this->table_analytics = $wpdb->prefix . 'fffl_analytics_disabled';
         $this->encryption = new Encryption();
+    }
+
+    /**
+     * Check whether a database table exists, with a cheap cached lookup.
+     *
+     * The Lite build intentionally does NOT create the Pro-feature tables
+     * (audit log, scheduled reports, GDPR requests). Callers use this guard so
+     * their read/write paths degrade cleanly (no-op / empty) instead of firing
+     * a query against a missing table and spamming the error log.
+     *
+     * Caching is two-tiered: a per-request static cache (avoids repeat work in
+     * a single page load) backed by a short-lived transient (avoids a DB hit on
+     * every request). A positive result is cached longer than a negative one so
+     * that, once a Pro upgrade actually creates the table, the guard re-checks
+     * reasonably soon rather than staying "missing" for the full TTL.
+     *
+     * @param string $table Full table name (including the wpdb prefix).
+     * @return bool
+     */
+    public function table_exists(string $table): bool {
+        if (isset(self::$table_exists_cache[$table])) {
+            return self::$table_exists_cache[$table];
+        }
+
+        $transient_key = 'fffl_table_exists_' . md5($table);
+        $cached = get_transient($transient_key);
+        if ($cached === 'yes' || $cached === 'no') {
+            $exists = ($cached === 'yes');
+            self::$table_exists_cache[$table] = $exists;
+            return $exists;
+        }
+
+        $found = $this->wpdb->get_var(
+            $this->wpdb->prepare('SHOW TABLES LIKE %s', $table)
+        );
+        $exists = ($found === $table);
+
+        self::$table_exists_cache[$table] = $exists;
+        // Re-probe missing tables sooner than present ones.
+        set_transient($transient_key, $exists ? 'yes' : 'no', $exists ? HOUR_IN_SECONDS : 5 * MINUTE_IN_SECONDS);
+
+        return $exists;
     }
 
     // =========================================================================
@@ -745,6 +794,12 @@ class Database {
      * @return int|false The new analytics record ID or false on failure
      */
     public function track_step_event(array $data): int|false {
+        // Step analytics is a Pro feature; the table is not created in the Lite
+        // build. No-op cleanly so the public form path never logs a DB error.
+        if (!$this->table_exists($this->table_analytics)) {
+            return false;
+        }
+
         $insert_data = [
             'instance_id' => (int)$data['instance_id'],
             'submission_id' => $data['submission_id'] ?? null,
@@ -2279,6 +2334,11 @@ class Database {
     public function create_scheduled_report(array $data): int|false {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
 
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
+
         $result = $this->wpdb->insert($table, [
             'name' => $data['name'],
             'frequency' => $data['frequency'],
@@ -2300,6 +2360,11 @@ class Database {
      */
     public function update_scheduled_report(int $id, array $data): bool {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         $update_data = [];
 
@@ -2337,6 +2402,10 @@ class Database {
      */
     public function delete_scheduled_report(int $id): bool {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
         return $this->wpdb->delete($table, ['id' => $id]) !== false;
     }
 
@@ -2348,6 +2417,11 @@ class Database {
      */
     public function get_scheduled_reports(bool $active_only = false): array {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $where = $active_only ? 'WHERE is_active = 1' : '';
         $sql = "SELECT * FROM {$table} {$where} ORDER BY name ASC";
@@ -2363,6 +2437,11 @@ class Database {
      */
     public function get_scheduled_report(int $id): ?array {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade to null.
+        if (!$this->table_exists($table)) {
+            return null;
+        }
 
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id),
@@ -2385,6 +2464,11 @@ class Database {
      */
     public function get_due_reports(string $frequency): array {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$table} WHERE is_active = 1 AND frequency = %s",
@@ -2409,6 +2493,11 @@ class Database {
      */
     public function update_report_sent(int $id): bool {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         return $this->wpdb->update(
             $table,
@@ -2541,6 +2630,11 @@ class Database {
     ): int|false {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
 
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
+
         $user = wp_get_current_user();
         if (!$user || !$user->ID) {
             return false;
@@ -2572,6 +2666,11 @@ class Database {
      */
     public function get_audit_log(array $filters = [], int $limit = 100, int $offset = 0): array {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $where = ['1=1'];
         $values = [];
@@ -2628,6 +2727,11 @@ class Database {
     public function get_audit_log_count(array $filters = []): int {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
 
+        // Pro-feature table — not created in the Lite build. Degrade to zero.
+        if (!$this->table_exists($table)) {
+            return 0;
+        }
+
         $where = ['1=1'];
         $values = [];
 
@@ -2676,6 +2780,11 @@ class Database {
     public function delete_old_audit_logs(int $days): int {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
 
+        // Pro-feature table — not created in the Lite build. Nothing to prune.
+        if (!$this->table_exists($table)) {
+            return 0;
+        }
+
         return (int)$this->wpdb->query($this->wpdb->prepare(
             "DELETE FROM {$table} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days
@@ -2694,6 +2803,11 @@ class Database {
      */
     public function create_gdpr_request(array $data): int|false {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         $user = wp_get_current_user();
 
@@ -2734,6 +2848,11 @@ class Database {
      */
     public function get_gdpr_requests(array $filters = [], int $limit = 50, int $offset = 0): array {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $where = ['1=1'];
         $values = [];
@@ -2781,6 +2900,11 @@ class Database {
     public function get_gdpr_requests_count(array $filters = []): int {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
 
+        // Pro-feature table — not created in the Lite build. Degrade to zero.
+        if (!$this->table_exists($table)) {
+            return 0;
+        }
+
         $where = ['1=1'];
         $values = [];
 
@@ -2826,6 +2950,11 @@ class Database {
         ?string $notes = null
     ): bool {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         $user = wp_get_current_user();
 
@@ -3059,7 +3188,7 @@ class Database {
             ));
         }
 
-        if (!empty($settings['retention_analytics_days'])) {
+        if (!empty($settings['retention_analytics_days']) && $this->table_exists($this->table_analytics)) {
             $days = (int)$settings['retention_analytics_days'];
             $stats['analytics'] = (int)$this->wpdb->get_var($this->wpdb->prepare(
                 "SELECT COUNT(*) FROM {$this->table_analytics}
@@ -3070,12 +3199,14 @@ class Database {
 
         if (!empty($settings['retention_audit_log_days'])) {
             $table = $this->wpdb->prefix . 'fffl_audit_log';
-            $days = (int)$settings['retention_audit_log_days'];
-            $stats['audit_logs'] = (int)$this->wpdb->get_var($this->wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table}
-                 WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
-                $days
-            ));
+            if ($this->table_exists($table)) {
+                $days = (int)$settings['retention_audit_log_days'];
+                $stats['audit_logs'] = (int)$this->wpdb->get_var($this->wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table}
+                     WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+                    $days
+                ));
+            }
         }
 
         if (!empty($settings['retention_api_usage_days'])) {

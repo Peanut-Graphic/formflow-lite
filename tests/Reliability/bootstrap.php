@@ -45,6 +45,9 @@ foreach ([
 if (!defined('MINUTE_IN_SECONDS')) {
     define('MINUTE_IN_SECONDS', 60);
 }
+if (!defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 3600);
+}
 
 // ---------------------------------------------------------------------------
 // Option + transient stores (in-memory, reset between tests via helpers).
@@ -117,6 +120,15 @@ if (!function_exists('current_time')) {
 if (!function_exists('sanitize_text_field')) {
     function sanitize_text_field($str) { return is_string($str) ? trim(strip_tags($str)) : ''; }
 }
+if (!function_exists('wp_get_current_user')) {
+    function wp_get_current_user() {
+        $u = new \stdClass();
+        $u->ID         = $GLOBALS['__fffl_current_user_id'] ?? 1;
+        $u->user_login = 'tester';
+        $u->user_email = 'tester@example.com';
+        return $u;
+    }
+}
 
 // dbDelta records the SQL it was handed so the upgrade test can prove the
 // Activator re-ran create_tables() on a stale version.
@@ -135,7 +147,7 @@ if (!function_exists('dbDelta')) {
  * - get_var() answers INFORMATION_SCHEMA column/table existence queries from a
  *   configurable map of "tables that exist".
  */
-class FFFL_Fake_Wpdb {
+class wpdb {
     public $prefix = 'wp_';
     public $dbname = 'fffl_test_db';
     public $insert_id = 0;
@@ -207,13 +219,21 @@ if (!defined('OBJECT')) {
 /**
  * Reset the in-memory WP state and install a fresh fake wpdb.
  */
-function fffl_reliability_reset(array $existing_tables = []): FFFL_Fake_Wpdb {
+function fffl_reliability_reset(array $existing_tables = []): wpdb {
     global $wpdb;
     $GLOBALS['__fffl_options']        = [];
     $GLOBALS['__fffl_transients']     = [];
     $GLOBALS['__fffl_dbdelta_calls']  = [];
-    $wpdb = new FFFL_Fake_Wpdb();
+    $wpdb = new wpdb();
     $wpdb->existing_tables = $existing_tables;
+
+    // Reset the Database table-exists static cache between tests.
+    if (class_exists(\FFFL\Database\Database::class)) {
+        // Private static; accessible without setAccessible() on PHP 8.1+.
+        (new \ReflectionProperty(\FFFL\Database\Database::class, 'table_exists_cache'))
+            ->setValue(null, []);
+    }
+
     return $wpdb;
 }
 
