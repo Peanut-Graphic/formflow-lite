@@ -78,3 +78,6 @@ jobs:
 
       - name: Contract tests (net 7)
         run: vendor/bin/phpunit -c phpunit.contract.xml
+
+      - name: Reliability tests (schema-drift + upgrade + Pro-table guards)
+        run: vendor/bin/phpunit -c phpunit.reliability.xml
