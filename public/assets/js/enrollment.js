@@ -1229,44 +1229,15 @@
         var stepNames = FFEnrollment.stepNames[FFEnrollment.formType] || {};
         var stepName = stepNames[step] || 'Step ' + step;
 
-        // Detect browser and device
-        var browserInfo = detectBrowser();
-
-        var data = {
-            action: 'fffl_track_step',
-            nonce: fffl_frontend.nonce,
-            instance: FFEnrollment.instanceSlug,
-            session_id: FFEnrollment.sessionId,
-            step: step,
-            step_name: stepName,
-            event_action: action,
-            time_on_step: timeOnStep,
-            browser: browserInfo.browser,
-            is_mobile: browserInfo.isMobile ? 1 : 0,
-            referrer: document.referrer || ''
-        };
-
-        // Push to GTM dataLayer for analytics integration
+        // Push to GTM dataLayer for analytics integration.
+        //
+        // NOTE: this used to also POST a step-tracking payload to admin-ajax,
+        // but that AJAX action is not registered in the Lite build
+        // (step analytics is a Pro feature, and its table is never created), so
+        // every call returned admin-ajax's "0" and wrote nothing. The dead POST
+        // (and its sendBeacon variant) was removed; GTM dataLayer push — which
+        // is purely client-side and useful — is kept.
         pushToDataLayer(action, step, stepName, timeOnStep);
-
-        // Use sendBeacon for page close events (more reliable)
-        if (useBeacon && navigator.sendBeacon) {
-            var formData = new FormData();
-            for (var key in data) {
-                formData.append(key, data[key]);
-            }
-            navigator.sendBeacon(fffl_frontend.ajax_url, formData);
-            return;
-        }
-
-        // Regular AJAX for normal tracking
-        $.ajax({
-            url: fffl_frontend.ajax_url,
-            type: 'POST',
-            data: data,
-            // Don't wait for response - fire and forget for analytics
-            async: true
-        });
     }
 
     /**
@@ -1322,34 +1293,6 @@
         if (window.FFAnalytics && typeof window.FFAnalytics.trackFormStep === 'function') {
             window.FFAnalytics.trackFormStep(step, stepName);
         }
-    }
-
-    /**
-     * Detect browser and device type
-     */
-    function detectBrowser() {
-        var ua = navigator.userAgent;
-        var browser = 'Unknown';
-        var isMobile = /Mobile|Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
-
-        if (ua.indexOf('Chrome') > -1 && ua.indexOf('Edg') === -1 && ua.indexOf('OPR') === -1) {
-            browser = 'Chrome';
-        } else if (ua.indexOf('Safari') > -1 && ua.indexOf('Chrome') === -1) {
-            browser = 'Safari';
-        } else if (ua.indexOf('Firefox') > -1) {
-            browser = 'Firefox';
-        } else if (ua.indexOf('Edg') > -1) {
-            browser = 'Edge';
-        } else if (ua.indexOf('OPR') > -1 || ua.indexOf('Opera') > -1) {
-            browser = 'Opera';
-        } else if (ua.indexOf('MSIE') > -1 || ua.indexOf('Trident') > -1) {
-            browser = 'Internet Explorer';
-        }
-
-        return {
-            browser: browser,
-            isMobile: isMobile
-        };
     }
 
     /**

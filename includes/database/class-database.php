@@ -25,6 +25,13 @@ class Database {
     private Encryption $encryption;
 
     /**
+     * Per-request cache of table-existence checks, keyed by full table name.
+     *
+     * @var array<string,bool>
+     */
+    private static array $table_exists_cache = [];
+
+    /**
      * Constructor
      */
     public function __construct() {
@@ -36,6 +43,48 @@ class Database {
         // Analytics table placeholder - queries will return empty results
         $this->table_analytics = $wpdb->prefix . 'fffl_analytics_disabled';
         $this->encryption = new Encryption();
+    }
+
+    /**
+     * Check whether a database table exists, with a cheap cached lookup.
+     *
+     * The Lite build intentionally does NOT create the Pro-feature tables
+     * (audit log, scheduled reports, GDPR requests). Callers use this guard so
+     * their read/write paths degrade cleanly (no-op / empty) instead of firing
+     * a query against a missing table and spamming the error log.
+     *
+     * Caching is two-tiered: a per-request static cache (avoids repeat work in
+     * a single page load) backed by a short-lived transient (avoids a DB hit on
+     * every request). A positive result is cached longer than a negative one so
+     * that, once a Pro upgrade actually creates the table, the guard re-checks
+     * reasonably soon rather than staying "missing" for the full TTL.
+     *
+     * @param string $table Full table name (including the wpdb prefix).
+     * @return bool
+     */
+    public function table_exists(string $table): bool {
+        if (isset(self::$table_exists_cache[$table])) {
+            return self::$table_exists_cache[$table];
+        }
+
+        $transient_key = 'fffl_table_exists_' . md5($table);
+        $cached = get_transient($transient_key);
+        if ($cached === 'yes' || $cached === 'no') {
+            $exists = ($cached === 'yes');
+            self::$table_exists_cache[$table] = $exists;
+            return $exists;
+        }
+
+        $found = $this->wpdb->get_var(
+            $this->wpdb->prepare('SHOW TABLES LIKE %s', $table)
+        );
+        $exists = ($found === $table);
+
+        self::$table_exists_cache[$table] = $exists;
+        // Re-probe missing tables sooner than present ones.
+        set_transient($transient_key, $exists ? 'yes' : 'no', $exists ? HOUR_IN_SECONDS : 5 * MINUTE_IN_SECONDS);
+
+        return $exists;
     }
 
     // =========================================================================
@@ -745,6 +794,12 @@ class Database {
      * @return int|false The new analytics record ID or false on failure
      */
     public function track_step_event(array $data): int|false {
+        // Step analytics is a Pro feature; the table is not created in the Lite
+        // build. No-op cleanly so the public form path never logs a DB error.
+        if (!$this->table_exists($this->table_analytics)) {
+            return false;
+        }
+
         $insert_data = [
             'instance_id' => (int)$data['instance_id'],
             'submission_id' => $data['submission_id'] ?? null,
@@ -1220,272 +1275,6 @@ class Database {
         );
 
         return (int)$this->wpdb->query($sql);
-    }
-
-    // =========================================================================
-    // Attribution Analytics
-    // =========================================================================
-
-    /**
-     * Get visitor touch summary for attribution
-     *
-     * @param int|null $instance_id Filter by instance
-     * @param string $date_from Start date (Y-m-d)
-     * @param string $date_to End date (Y-m-d)
-     * @return array Touch summary by source/medium
-     */
-    public function get_touch_summary(?int $instance_id = null, string $date_from = '', string $date_to = ''): array {
-        $touches_table = $this->wpdb->prefix . FFFL_TABLE_TOUCHES;
-
-        $where = ['1=1'];
-        $values = [];
-
-        if ($instance_id) {
-            $where[] = 'instance_id = %d';
-            $values[] = $instance_id;
-        }
-
-        if ($date_from) {
-            $where[] = 'created_at >= %s';
-            $values[] = $date_from . ' 00:00:00';
-        }
-
-        if ($date_to) {
-            $where[] = 'created_at <= %s';
-            $values[] = $date_to . ' 23:59:59';
-        }
-
-        $where_clause = implode(' AND ', $where);
-
-        $sql = "SELECT
-                    COALESCE(utm_source, referrer_domain, 'direct') as source,
-                    COALESCE(utm_medium, 'none') as medium,
-                    COUNT(*) as touches,
-                    COUNT(DISTINCT visitor_id) as unique_visitors,
-                    COUNT(CASE WHEN touch_type = 'form_view' THEN 1 END) as form_views,
-                    COUNT(CASE WHEN touch_type = 'form_start' THEN 1 END) as form_starts,
-                    COUNT(CASE WHEN touch_type = 'form_complete' THEN 1 END) as completions
-                FROM {$touches_table}
-                WHERE {$where_clause}
-                GROUP BY source, medium
-                ORDER BY touches DESC";
-
-        if (!empty($values)) {
-            $sql = $this->wpdb->prepare($sql, ...$values);
-        }
-
-        return $this->wpdb->get_results($sql, ARRAY_A) ?: [];
-    }
-
-    /**
-     * Get handoff statistics
-     *
-     * @param int|null $instance_id Filter by instance
-     * @param string $date_from Start date (Y-m-d)
-     * @param string $date_to End date (Y-m-d)
-     * @return array Handoff stats
-     */
-    public function get_handoff_stats(?int $instance_id = null, string $date_from = '', string $date_to = ''): array {
-        $handoffs_table = $this->wpdb->prefix . FFFL_TABLE_HANDOFFS;
-
-        $where = ['1=1'];
-        $values = [];
-
-        if ($instance_id) {
-            $where[] = 'instance_id = %d';
-            $values[] = $instance_id;
-        }
-
-        if ($date_from) {
-            $where[] = 'created_at >= %s';
-            $values[] = $date_from . ' 00:00:00';
-        }
-
-        if ($date_to) {
-            $where[] = 'created_at <= %s';
-            $values[] = $date_to . ' 23:59:59';
-        }
-
-        $where_clause = implode(' AND ', $where);
-
-        $sql = "SELECT
-                    COUNT(*) as total_handoffs,
-                    SUM(CASE WHEN status = 'redirected' THEN 1 ELSE 0 END) as pending,
-                    SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-                    SUM(CASE WHEN status = 'expired' THEN 1 ELSE 0 END) as expired,
-                    AVG(CASE WHEN status = 'completed' THEN TIMESTAMPDIFF(MINUTE, created_at, completed_at) END) as avg_completion_minutes
-                FROM {$handoffs_table}
-                WHERE {$where_clause}";
-
-        if (!empty($values)) {
-            $sql = $this->wpdb->prepare($sql, ...$values);
-        }
-
-        $result = $this->wpdb->get_row($sql, ARRAY_A);
-
-        return [
-            'total_handoffs' => (int)($result['total_handoffs'] ?? 0),
-            'pending' => (int)($result['pending'] ?? 0),
-            'completed' => (int)($result['completed'] ?? 0),
-            'expired' => (int)($result['expired'] ?? 0),
-            'completion_rate' => $result['total_handoffs'] > 0
-                ? round(($result['completed'] / $result['total_handoffs']) * 100, 1)
-                : 0,
-            'avg_completion_minutes' => round($result['avg_completion_minutes'] ?? 0, 1),
-        ];
-    }
-
-    /**
-     * Get visitor journeys with attribution data
-     *
-     * @param int|null $instance_id Filter by instance
-     * @param string $date_from Start date (Y-m-d)
-     * @param string $date_to End date (Y-m-d)
-     * @param int $limit Max journeys to return
-     * @return array Visitor journeys
-     */
-    public function get_visitor_journeys(?int $instance_id = null, string $date_from = '', string $date_to = '', int $limit = 100): array {
-        $touches_table = $this->wpdb->prefix . FFFL_TABLE_TOUCHES;
-        $visitors_table = $this->wpdb->prefix . FFFL_TABLE_VISITORS;
-
-        $where = ['t.touch_type = %s'];
-        $values = ['form_complete'];
-
-        if ($instance_id) {
-            $where[] = 't.instance_id = %d';
-            $values[] = $instance_id;
-        }
-
-        if ($date_from) {
-            $where[] = 't.created_at >= %s';
-            $values[] = $date_from . ' 00:00:00';
-        }
-
-        if ($date_to) {
-            $where[] = 't.created_at <= %s';
-            $values[] = $date_to . ' 23:59:59';
-        }
-
-        $values[] = $limit;
-
-        $where_clause = implode(' AND ', $where);
-
-        $sql = $this->wpdb->prepare(
-            "SELECT
-                t.visitor_id,
-                t.created_at as conversion_time,
-                v.first_touch,
-                v.visit_count,
-                (SELECT COUNT(*) FROM {$touches_table} t2 WHERE t2.visitor_id = t.visitor_id AND t2.created_at <= t.created_at) as touch_count
-             FROM {$touches_table} t
-             LEFT JOIN {$visitors_table} v ON t.visitor_id = v.visitor_id
-             WHERE {$where_clause}
-             ORDER BY t.created_at DESC
-             LIMIT %d",
-            ...$values
-        );
-
-        return $this->wpdb->get_results($sql, ARRAY_A) ?: [];
-    }
-
-    /**
-     * Get top campaigns by conversions
-     *
-     * @param int|null $instance_id Filter by instance
-     * @param string $date_from Start date (Y-m-d)
-     * @param string $date_to End date (Y-m-d)
-     * @param int $limit Max campaigns to return
-     * @return array Campaign stats
-     */
-    public function get_top_campaigns(?int $instance_id = null, string $date_from = '', string $date_to = '', int $limit = 10): array {
-        $touches_table = $this->wpdb->prefix . FFFL_TABLE_TOUCHES;
-
-        $where = ['utm_campaign IS NOT NULL', "utm_campaign != ''"];
-        $values = [];
-
-        if ($instance_id) {
-            $where[] = 'instance_id = %d';
-            $values[] = $instance_id;
-        }
-
-        if ($date_from) {
-            $where[] = 'created_at >= %s';
-            $values[] = $date_from . ' 00:00:00';
-        }
-
-        if ($date_to) {
-            $where[] = 'created_at <= %s';
-            $values[] = $date_to . ' 23:59:59';
-        }
-
-        $values[] = $limit;
-        $where_clause = implode(' AND ', $where);
-
-        $sql = $this->wpdb->prepare(
-            "SELECT
-                utm_campaign as campaign,
-                utm_source as source,
-                utm_medium as medium,
-                COUNT(DISTINCT visitor_id) as unique_visitors,
-                COUNT(CASE WHEN touch_type = 'form_complete' THEN 1 END) as conversions
-             FROM {$touches_table}
-             WHERE {$where_clause}
-             GROUP BY utm_campaign, utm_source, utm_medium
-             ORDER BY conversions DESC, unique_visitors DESC
-             LIMIT %d",
-            ...$values
-        );
-
-        return $this->wpdb->get_results($sql, ARRAY_A) ?: [];
-    }
-
-    /**
-     * Get external completions summary
-     *
-     * @param int|null $instance_id Filter by instance
-     * @param string $date_from Start date (Y-m-d)
-     * @param string $date_to End date (Y-m-d)
-     * @return array Completion stats by source
-     */
-    public function get_external_completions_summary(?int $instance_id = null, string $date_from = '', string $date_to = ''): array {
-        $completions_table = $this->wpdb->prefix . FFFL_TABLE_EXTERNAL_COMPLETIONS;
-
-        $where = ['1=1'];
-        $values = [];
-
-        if ($instance_id) {
-            $where[] = 'instance_id = %d';
-            $values[] = $instance_id;
-        }
-
-        if ($date_from) {
-            $where[] = 'created_at >= %s';
-            $values[] = $date_from . ' 00:00:00';
-        }
-
-        if ($date_to) {
-            $where[] = 'created_at <= %s';
-            $values[] = $date_to . ' 23:59:59';
-        }
-
-        $where_clause = implode(' AND ', $where);
-
-        $sql = "SELECT
-                    source,
-                    completion_type,
-                    COUNT(*) as total,
-                    SUM(CASE WHEN handoff_id IS NOT NULL THEN 1 ELSE 0 END) as matched,
-                    SUM(CASE WHEN handoff_id IS NULL THEN 1 ELSE 0 END) as unmatched
-                FROM {$completions_table}
-                WHERE {$where_clause}
-                GROUP BY source, completion_type
-                ORDER BY total DESC";
-
-        if (!empty($values)) {
-            $sql = $this->wpdb->prepare($sql, ...$values);
-        }
-
-        return $this->wpdb->get_results($sql, ARRAY_A) ?: [];
     }
 
     // =========================================================================
@@ -2279,6 +2068,11 @@ class Database {
     public function create_scheduled_report(array $data): int|false {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
 
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
+
         $result = $this->wpdb->insert($table, [
             'name' => $data['name'],
             'frequency' => $data['frequency'],
@@ -2300,6 +2094,11 @@ class Database {
      */
     public function update_scheduled_report(int $id, array $data): bool {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         $update_data = [];
 
@@ -2337,6 +2136,10 @@ class Database {
      */
     public function delete_scheduled_report(int $id): bool {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
         return $this->wpdb->delete($table, ['id' => $id]) !== false;
     }
 
@@ -2348,6 +2151,11 @@ class Database {
      */
     public function get_scheduled_reports(bool $active_only = false): array {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $where = $active_only ? 'WHERE is_active = 1' : '';
         $sql = "SELECT * FROM {$table} {$where} ORDER BY name ASC";
@@ -2363,6 +2171,11 @@ class Database {
      */
     public function get_scheduled_report(int $id): ?array {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade to null.
+        if (!$this->table_exists($table)) {
+            return null;
+        }
 
         $result = $this->wpdb->get_row(
             $this->wpdb->prepare("SELECT * FROM {$table} WHERE id = %d", $id),
@@ -2385,6 +2198,11 @@ class Database {
      */
     public function get_due_reports(string $frequency): array {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $sql = $this->wpdb->prepare(
             "SELECT * FROM {$table} WHERE is_active = 1 AND frequency = %s",
@@ -2409,6 +2227,11 @@ class Database {
      */
     public function update_report_sent(int $id): bool {
         $table = $this->wpdb->prefix . 'fffl_scheduled_reports';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         return $this->wpdb->update(
             $table,
@@ -2541,6 +2364,11 @@ class Database {
     ): int|false {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
 
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
+
         $user = wp_get_current_user();
         if (!$user || !$user->ID) {
             return false;
@@ -2572,6 +2400,11 @@ class Database {
      */
     public function get_audit_log(array $filters = [], int $limit = 100, int $offset = 0): array {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $where = ['1=1'];
         $values = [];
@@ -2628,6 +2461,11 @@ class Database {
     public function get_audit_log_count(array $filters = []): int {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
 
+        // Pro-feature table — not created in the Lite build. Degrade to zero.
+        if (!$this->table_exists($table)) {
+            return 0;
+        }
+
         $where = ['1=1'];
         $values = [];
 
@@ -2676,6 +2514,11 @@ class Database {
     public function delete_old_audit_logs(int $days): int {
         $table = $this->wpdb->prefix . 'fffl_audit_log';
 
+        // Pro-feature table — not created in the Lite build. Nothing to prune.
+        if (!$this->table_exists($table)) {
+            return 0;
+        }
+
         return (int)$this->wpdb->query($this->wpdb->prepare(
             "DELETE FROM {$table} WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
             $days
@@ -2694,6 +2537,11 @@ class Database {
      */
     public function create_gdpr_request(array $data): int|false {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         $user = wp_get_current_user();
 
@@ -2734,6 +2582,11 @@ class Database {
      */
     public function get_gdpr_requests(array $filters = [], int $limit = 50, int $offset = 0): array {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
+
+        // Pro-feature table — not created in the Lite build. Degrade to empty.
+        if (!$this->table_exists($table)) {
+            return [];
+        }
 
         $where = ['1=1'];
         $values = [];
@@ -2781,6 +2634,11 @@ class Database {
     public function get_gdpr_requests_count(array $filters = []): int {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
 
+        // Pro-feature table — not created in the Lite build. Degrade to zero.
+        if (!$this->table_exists($table)) {
+            return 0;
+        }
+
         $where = ['1=1'];
         $values = [];
 
@@ -2826,6 +2684,11 @@ class Database {
         ?string $notes = null
     ): bool {
         $table = $this->wpdb->prefix . 'fffl_gdpr_requests';
+
+        // Pro-feature table — not created in the Lite build. Degrade cleanly.
+        if (!$this->table_exists($table)) {
+            return false;
+        }
 
         $user = wp_get_current_user();
 
@@ -3059,7 +2922,7 @@ class Database {
             ));
         }
 
-        if (!empty($settings['retention_analytics_days'])) {
+        if (!empty($settings['retention_analytics_days']) && $this->table_exists($this->table_analytics)) {
             $days = (int)$settings['retention_analytics_days'];
             $stats['analytics'] = (int)$this->wpdb->get_var($this->wpdb->prepare(
                 "SELECT COUNT(*) FROM {$this->table_analytics}
@@ -3070,12 +2933,14 @@ class Database {
 
         if (!empty($settings['retention_audit_log_days'])) {
             $table = $this->wpdb->prefix . 'fffl_audit_log';
-            $days = (int)$settings['retention_audit_log_days'];
-            $stats['audit_logs'] = (int)$this->wpdb->get_var($this->wpdb->prepare(
-                "SELECT COUNT(*) FROM {$table}
-                 WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
-                $days
-            ));
+            if ($this->table_exists($table)) {
+                $days = (int)$settings['retention_audit_log_days'];
+                $stats['audit_logs'] = (int)$this->wpdb->get_var($this->wpdb->prepare(
+                    "SELECT COUNT(*) FROM {$table}
+                     WHERE created_at < DATE_SUB(NOW(), INTERVAL %d DAY)",
+                    $days
+                ));
+            }
         }
 
         if (!empty($settings['retention_api_usage_days'])) {

@@ -44,6 +44,77 @@ class Activator {
     }
 
     /**
+     * Self-healing migration check, run on every `plugins_loaded`.
+     *
+     * dbDelta only runs on register_activation_hook — which fires ONCE, on
+     * manual activation. An auto-update that ships a schema change never
+     * re-activates the plugin, so without this gate the new columns/tables
+     * never reach an already-active install. The stored `fffl_version` option
+     * was written but never compared, so the migration could never re-run.
+     *
+     * Two conditions trigger a migration:
+     *   1. The stored version differs from FFFL_VERSION (normal upgrade).
+     *   2. The stored version MATCHES but the live schema has drifted — a core
+     *      table the current version expects is missing. Trusting the option
+     *      without verifying the schema is a one-way trap (see peanut-connect's
+     *      dominionenergyptr.com outage: option said "migrated", the column had
+     *      never actually been added, so every write failed forever).
+     *
+     * Cheap: a single get_option() in the common (up-to-date) case; the schema
+     * probe only runs when the version already looks current.
+     */
+    public static function maybe_upgrade(): void {
+        $installed_version = get_option('fffl_version', false);
+
+        $needs_migration = ($installed_version !== FFFL_VERSION)
+            || !self::schema_matches_current_version();
+
+        if (!$needs_migration) {
+            return;
+        }
+
+        self::create_tables();
+        self::run_migrations();
+        update_option('fffl_version', FFFL_VERSION);
+    }
+
+    /**
+     * Verify that the core tables the current version expects actually exist.
+     *
+     * Returns false if any expected table is missing (drift) — the caller
+     * treats that as a migration trigger. dbDelta is additive/idempotent, so
+     * re-running create_tables() is safe and creates only what is missing.
+     *
+     * Uses one `SHOW TABLES LIKE` per table (cheap, no INFORMATION_SCHEMA
+     * permission needed) and short-circuits on the first miss.
+     */
+    private static function schema_matches_current_version(): bool {
+        global $wpdb;
+
+        $expected_tables = [
+            FFFL_TABLE_INSTANCES,
+            FFFL_TABLE_SUBMISSIONS,
+            FFFL_TABLE_LOGS,
+            'fffl_retry_queue',
+            FFFL_TABLE_WEBHOOKS,
+            FFFL_TABLE_API_USAGE,
+            FFFL_TABLE_RESUME_TOKENS,
+        ];
+
+        foreach ($expected_tables as $bare) {
+            $table = $wpdb->prefix . $bare;
+            $found = $wpdb->get_var(
+                $wpdb->prepare('SHOW TABLES LIKE %s', $table)
+            );
+            if ($found !== $table) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Create database tables - Core tables only
      */
     private static function create_tables(): void {
