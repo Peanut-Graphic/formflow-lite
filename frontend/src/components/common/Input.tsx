@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { InputHTMLAttributes, ReactNode } from 'react';
 
 export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -8,15 +9,22 @@ export interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   leftIcon?: ReactNode;
 }
 
-export default function Input({ label, error, helpText, icon, leftIcon, className = '', ...props }: InputProps) {
+export default function Input({ label, error, helpText, icon, leftIcon, id, className = '', ...props }: InputProps) {
   const displayIcon = icon || leftIcon;
+  const generatedId = useId();
+  const inputId = id ?? generatedId;
+  const errorId = `${inputId}-error`;
+  const helpId = `${inputId}-help`;
+  const describedBy = [error ? errorId : null, helpText && !error ? helpId : null]
+    .filter(Boolean)
+    .join(' ') || undefined;
 
   return (
     <div className="w-full">
       {label && (
-        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+        <label htmlFor={inputId} className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
           {label}
-          {props.required && <span className="text-red-500 ml-1">*</span>}
+          {props.required && <span className="text-red-500 ml-1" aria-hidden="true">*</span>}
         </label>
       )}
       <div className="relative">
@@ -26,6 +34,10 @@ export default function Input({ label, error, helpText, icon, leftIcon, classNam
           </div>
         )}
         <input
+          id={inputId}
+          aria-invalid={error ? true : undefined}
+          aria-describedby={describedBy}
+          aria-required={props.required ? true : undefined}
           className={`
             w-full rounded-lg border transition-colors
             ${displayIcon ? 'pl-10' : 'px-3'} py-2
@@ -41,8 +53,8 @@ export default function Input({ label, error, helpText, icon, leftIcon, classNam
           {...props}
         />
       </div>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-      {helpText && !error && <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{helpText}</p>}
+      {error && <p id={errorId} role="alert" className="mt-1 text-sm text-red-600">{error}</p>}
+      {helpText && !error && <p id={helpId} className="mt-1 text-sm text-slate-500 dark:text-slate-400">{helpText}</p>}
     </div>
   );
 }
