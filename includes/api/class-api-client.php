@@ -359,10 +359,26 @@ class ApiClient {
         $max_retries = 3;
         $retry_count = 0;
 
+        // SSRF guard: the endpoint is admin-supplied and only validated by
+        // FILTER_VALIDATE_URL upstream, which happily accepts loopback,
+        // link-local and private-range hosts. Block those (and non-http(s)
+        // schemes) BEFORE the outbound call so a crafted endpoint can't be
+        // used to reach internal services / cloud metadata.
+        if (!self::is_safe_outbound_url($url)) {
+            return [
+                'body' => '',
+                'status' => 0,
+                'error' => true,
+                'error_message' => 'Blocked request to a non-public or unsafe URL',
+            ];
+        }
+
         $args = [
             'method' => $method,
             'timeout' => 30,
             'sslverify' => true,
+            // Defence in depth: WordPress also refuses private/loopback hosts.
+            'reject_unsafe_urls' => true,
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded'
             ]
@@ -416,6 +432,110 @@ class ApiClient {
             'error' => true,
             'error_message' => 'Max retries exceeded'
         ];
+    }
+
+    /**
+     * SSRF guard — decide whether an outbound URL is safe to request.
+     *
+     * Rejects non-http(s) schemes and any host that resolves to a loopback,
+     * link-local, private or otherwise reserved IP range (127/8, 10/8,
+     * 172.16/12, 192.168/16, 169.254/16, ::1, fc00::/7, …). Fails closed: a
+     * host that cannot be resolved is treated as unsafe.
+     *
+     * Pure/deterministic for IP-literal hosts (no network needed), which is
+     * how the regression test exercises it.
+     *
+     * @param string $url Absolute URL to validate.
+     * @return bool True if the URL is safe to request.
+     */
+    public static function is_safe_outbound_url(string $url): bool {
+        $parts = function_exists('wp_parse_url') ? wp_parse_url($url) : parse_url($url);
+        if (!is_array($parts) || !isset($parts['host']) || $parts['host'] === '') {
+            return false;
+        }
+
+        $scheme = isset($parts['scheme']) ? strtolower($parts['scheme']) : '';
+        if ($scheme !== 'http' && $scheme !== 'https') {
+            return false;
+        }
+
+        // Normalise host: lowercase, strip IPv6 brackets.
+        $host = strtolower(trim((string) $parts['host']));
+        $host = trim($host, '[]');
+        if ($host === '' || $host === 'localhost') {
+            return false;
+        }
+
+        $ips = self::resolve_host_ips($host);
+        if (empty($ips)) {
+            return false; // Unresolvable — fail closed.
+        }
+
+        foreach ($ips as $ip) {
+            if (!self::is_public_ip($ip)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Resolve a host to the set of IPs it points at.
+     *
+     * IP literals are returned as-is (no lookup). Host names are resolved for
+     * both A (IPv4) and AAAA (IPv6) records so a name that maps to a private
+     * address is caught.
+     *
+     * @param string $host Lowercased host, brackets already stripped.
+     * @return array<int,string> List of IP strings (may be empty).
+     */
+    private static function resolve_host_ips(string $host): array {
+        if (filter_var($host, FILTER_VALIDATE_IP) !== false) {
+            return [$host];
+        }
+
+        $ips = [];
+
+        $v4 = @gethostbynamel($host);
+        if (is_array($v4)) {
+            $ips = $v4;
+        }
+
+        if (function_exists('dns_get_record') && defined('DNS_AAAA')) {
+            $v6 = @dns_get_record($host, DNS_AAAA);
+            if (is_array($v6)) {
+                foreach ($v6 as $rec) {
+                    if (!empty($rec['ipv6'])) {
+                        $ips[] = $rec['ipv6'];
+                    }
+                }
+            }
+        }
+
+        return array_values(array_unique($ips));
+    }
+
+    /**
+     * Is an IP a routable, public address?
+     *
+     * FILTER_FLAG_NO_PRIV_RANGE blocks 10/8, 172.16/12, 192.168/16, fc00::/7;
+     * FILTER_FLAG_NO_RES_RANGE blocks 127/8, 169.254/16, ::1 and other
+     * reserved space.
+     *
+     * @param string $ip IP string.
+     * @return bool True if the IP is public.
+     */
+    private static function is_public_ip(string $ip): bool {
+        if (filter_var($ip, FILTER_VALIDATE_IP) === false) {
+            return false;
+        }
+
+        return filter_var(
+            $ip,
+            FILTER_VALIDATE_IP,
+            FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE
+        ) !== false;
     }
 
     /**

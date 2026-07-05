@@ -98,20 +98,58 @@ class EmbedHandler {
         }
 
         $allowed_origins = $this->get_allowed_origins();
-        $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+        $origin = sanitize_text_field($_SERVER['HTTP_ORIGIN'] ?? '');
 
-        if (in_array($origin, $allowed_origins) || in_array('*', $allowed_origins)) {
-            header('Access-Control-Allow-Origin: ' . ($origin ?: '*'));
-            header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-            header('Access-Control-Allow-Headers: Content-Type, X-Embed-Token');
-            header('Access-Control-Allow-Credentials: true');
+        foreach (self::cors_headers_for($origin, $allowed_origins) as $cors_header) {
+            header($cors_header);
         }
 
         // Handle preflight requests
-        if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+        if (($_SERVER['REQUEST_METHOD'] ?? '') === 'OPTIONS') {
             status_header(200);
             exit;
         }
+    }
+
+    /**
+     * Decide the CORS response headers for an embed request.
+     *
+     * Security invariant: a reflected/wildcard origin is NEVER combined with
+     * `Access-Control-Allow-Credentials: true`. Reflecting an arbitrary Origin
+     * while allowing credentials would let any site read authenticated
+     * responses, and browsers reject `Allow-Origin: *` + credentials outright.
+     *
+     * - Wildcard/open allowlist (the default): emit `Allow-Origin: *` WITHOUT
+     *   credentials and do NOT reflect the request Origin.
+     * - Explicit allowlist: only reflect the Origin and allow credentials when
+     *   that exact Origin is configured.
+     *
+     * Pure/deterministic — no I/O — so it is unit-testable in isolation.
+     *
+     * @param string             $origin          The request Origin header.
+     * @param array<int,string>  $allowed_origins Configured allowlist (may contain '*').
+     * @return array<int,string> Ordered list of header strings to emit.
+     */
+    public static function cors_headers_for(string $origin, array $allowed_origins): array {
+        if (in_array('*', $allowed_origins, true)) {
+            return [
+                'Access-Control-Allow-Origin: *',
+                'Access-Control-Allow-Methods: GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers: Content-Type, X-Embed-Token',
+            ];
+        }
+
+        if ($origin !== '' && in_array($origin, $allowed_origins, true)) {
+            return [
+                'Access-Control-Allow-Origin: ' . $origin,
+                'Vary: Origin',
+                'Access-Control-Allow-Methods: GET, POST, OPTIONS',
+                'Access-Control-Allow-Headers: Content-Type, X-Embed-Token',
+                'Access-Control-Allow-Credentials: true',
+            ];
+        }
+
+        return [];
     }
 
     /**
