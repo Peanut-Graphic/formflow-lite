@@ -82,12 +82,33 @@ if (empty($tab) || !in_array($tab, ['submissions', 'activity'])) {
 
 <script>
 jQuery(document).ready(function($) {
-    // HTML escape function to prevent XSS
+    // HTML escape function to prevent XSS. Escapes the five significant HTML
+    // characters INCLUDING both quote styles so the output is safe in attribute
+    // contexts as well as text/element contexts. Arrays/objects are stringified
+    // first so nested/structured values can never smuggle raw markup through.
     function escapeHtml(str) {
         if (str === null || str === undefined) return '';
-        var div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
+        if (typeof str === 'object') {
+            try { str = JSON.stringify(str); } catch (e) { str = String(str); }
+        }
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    // Render an email cell. Emits a mailto: link ONLY when the value looks like
+    // a real email address (with the address percent-encoded for the href);
+    // otherwise renders the value as escaped text with no href, so an
+    // attacker-controlled "email" can never inject markup or a javascript: URL.
+    function renderEmailCell(email) {
+        var raw = (email === null || email === undefined) ? '' : String(email);
+        if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+            return '<a href="mailto:' + encodeURIComponent(raw) + '">' + escapeHtml(raw) + '</a>';
+        }
+        return escapeHtml(raw);
     }
 
     // View submission details modal
@@ -125,8 +146,8 @@ jQuery(document).ready(function($) {
 
         // Header with status
         html += '<div class="ff-detail-header">';
-        html += '<span class="ff-detail-id">#' + s.id + '</span>';
-        html += '<span class="ff-status ff-status-' + s.status + '">' + s.status.replace('_', ' ') + '</span>';
+        html += '<span class="ff-detail-id">#' + escapeHtml(s.id) + '</span>';
+        html += '<span class="ff-status ff-status-' + escapeHtml(s.status) + '">' + escapeHtml(String(s.status || '').replace('_', ' ')) + '</span>';
         if (s.is_test) {
             html += '<span class="ff-status ff-status-test"><?php echo esc_js(__('Test', 'formflow-lite')); ?></span>';
         }
@@ -136,13 +157,13 @@ jQuery(document).ready(function($) {
         html += '<div class="ff-detail-section">';
         html += '<h4><?php echo esc_js(__('Basic Information', 'formflow-lite')); ?></h4>';
         html += '<table class="ff-detail-table">';
-        html += '<tr><th><?php echo esc_js(__('Form Instance', 'formflow-lite')); ?></th><td>' + (s.instance_name || '—') + '</td></tr>';
-        html += '<tr><th><?php echo esc_js(__('Session ID', 'formflow-lite')); ?></th><td><code>' + s.session_id + '</code></td></tr>';
-        html += '<tr><th><?php echo esc_js(__('Account Number', 'formflow-lite')); ?></th><td>' + (s.account_number || '—') + '</td></tr>';
-        html += '<tr><th><?php echo esc_js(__('Current Step', 'formflow-lite')); ?></th><td>' + s.step + '/5</td></tr>';
-        html += '<tr><th><?php echo esc_js(__('Created', 'formflow-lite')); ?></th><td>' + s.created_at + '</td></tr>';
+        html += '<tr><th><?php echo esc_js(__('Form Instance', 'formflow-lite')); ?></th><td>' + escapeHtml(s.instance_name || '—') + '</td></tr>';
+        html += '<tr><th><?php echo esc_js(__('Session ID', 'formflow-lite')); ?></th><td><code>' + escapeHtml(s.session_id) + '</code></td></tr>';
+        html += '<tr><th><?php echo esc_js(__('Account Number', 'formflow-lite')); ?></th><td>' + escapeHtml(s.account_number || '—') + '</td></tr>';
+        html += '<tr><th><?php echo esc_js(__('Current Step', 'formflow-lite')); ?></th><td>' + escapeHtml(s.step) + '/5</td></tr>';
+        html += '<tr><th><?php echo esc_js(__('Created', 'formflow-lite')); ?></th><td>' + escapeHtml(s.created_at) + '</td></tr>';
         if (s.completed_at) {
-            html += '<tr><th><?php echo esc_js(__('Completed', 'formflow-lite')); ?></th><td>' + s.completed_at + '</td></tr>';
+            html += '<tr><th><?php echo esc_js(__('Completed', 'formflow-lite')); ?></th><td>' + escapeHtml(s.completed_at) + '</td></tr>';
         }
         html += '</table>';
         html += '</div>';
@@ -153,17 +174,17 @@ jQuery(document).ready(function($) {
             html += '<h4><?php echo esc_js(__('Customer Information', 'formflow-lite')); ?></h4>';
             html += '<table class="ff-detail-table">';
             if (fd.first_name || fd.last_name) {
-                html += '<tr><th><?php echo esc_js(__('Name', 'formflow-lite')); ?></th><td>' + (fd.first_name || '') + ' ' + (fd.last_name || '') + '</td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Name', 'formflow-lite')); ?></th><td>' + escapeHtml((fd.first_name || '') + ' ' + (fd.last_name || '')) + '</td></tr>';
             }
             if (fd.email) {
-                html += '<tr><th><?php echo esc_js(__('Email', 'formflow-lite')); ?></th><td><a href="mailto:' + fd.email + '">' + fd.email + '</a></td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Email', 'formflow-lite')); ?></th><td>' + renderEmailCell(fd.email) + '</td></tr>';
             }
             if (fd.phone) {
-                html += '<tr><th><?php echo esc_js(__('Phone', 'formflow-lite')); ?></th><td>' + fd.phone + '</td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Phone', 'formflow-lite')); ?></th><td>' + escapeHtml(fd.phone) + '</td></tr>';
             }
             if (fd.street || fd.city || fd.state) {
                 var address = [fd.street, fd.city, fd.state, fd.zip].filter(Boolean).join(', ');
-                html += '<tr><th><?php echo esc_js(__('Address', 'formflow-lite')); ?></th><td>' + address + '</td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Address', 'formflow-lite')); ?></th><td>' + escapeHtml(address) + '</td></tr>';
             }
             html += '</table>';
             html += '</div>';
@@ -179,10 +200,10 @@ jQuery(document).ready(function($) {
                 html += '<tr><th><?php echo esc_js(__('Device Type', 'formflow-lite')); ?></th><td>' + deviceLabel + '</td></tr>';
             }
             if (fd.promo_code) {
-                html += '<tr><th><?php echo esc_js(__('Promo Code', 'formflow-lite')); ?></th><td><code>' + fd.promo_code + '</code></td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Promo Code', 'formflow-lite')); ?></th><td><code>' + escapeHtml(fd.promo_code) + '</code></td></tr>';
             }
             if (fd.confirmation_number) {
-                html += '<tr><th><?php echo esc_js(__('Confirmation #', 'formflow-lite')); ?></th><td><strong>' + fd.confirmation_number + '</strong></td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Confirmation #', 'formflow-lite')); ?></th><td><strong>' + escapeHtml(fd.confirmation_number) + '</strong></td></tr>';
             }
             html += '</table>';
             html += '</div>';
@@ -194,10 +215,10 @@ jQuery(document).ready(function($) {
             html += '<h4><?php echo esc_js(__('Installation Appointment', 'formflow-lite')); ?></h4>';
             html += '<table class="ff-detail-table">';
             if (fd.schedule_date) {
-                html += '<tr><th><?php echo esc_js(__('Date', 'formflow-lite')); ?></th><td>' + fd.schedule_date + '</td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Date', 'formflow-lite')); ?></th><td>' + escapeHtml(fd.schedule_date) + '</td></tr>';
             }
             if (fd.schedule_time || fd.schedule_time_display) {
-                html += '<tr><th><?php echo esc_js(__('Time', 'formflow-lite')); ?></th><td>' + (fd.schedule_time_display || fd.schedule_time) + '</td></tr>';
+                html += '<tr><th><?php echo esc_js(__('Time', 'formflow-lite')); ?></th><td>' + escapeHtml(fd.schedule_time_display || fd.schedule_time) + '</td></tr>';
             }
             html += '</table>';
             html += '</div>';
@@ -218,7 +239,7 @@ jQuery(document).ready(function($) {
         html += '<div class="ff-detail-section ff-collapsible">';
         html += '<h4 class="ff-collapsible-header"><?php echo esc_js(__('Raw Form Data', 'formflow-lite')); ?> <span class="dashicons dashicons-arrow-down-alt2"></span></h4>';
         html += '<div class="ff-collapsible-content" style="display:none;">';
-        html += '<pre class="ff-raw-data">' + JSON.stringify(fd, null, 2) + '</pre>';
+        html += '<pre class="ff-raw-data">' + escapeHtml(JSON.stringify(fd, null, 2)) + '</pre>';
         html += '</div>';
         html += '</div>';
 
