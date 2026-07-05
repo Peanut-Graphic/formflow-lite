@@ -5,6 +5,15 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.21] - 2026-07-05
+
+### Security
+
+- **Escape every field in the admin submission-detail view (stored XSS).** The submission modal built its DOM from decrypted, visitor-submitted form data with HTML-escaping applied to only a couple of fields, and placed the enrollee email directly into a `mailto:` href. A crafted submission could therefore execute script in an administrator's session. Every rendered field now passes through the escaping helper, and the email is emitted as a link only when it is a valid address (URL-encoded), otherwise as plain text.
+- **Neutralize CSV formula injection on the submissions and analytics exports.** Cells beginning with `=`, `+`, `-`, `@`, tab, or carriage return are now prefixed with an apostrophe so spreadsheet applications do not evaluate attacker-supplied values as formulas.
+- **Resolve the client IP from a trusted proxy only.** The rate limiter keyed on forwarded headers (`X-Forwarded-For` / `CF-Connecting-IP`) that any client can set, allowing the enrollment submission throttle to be bypassed by rotating the header. The resolver now defaults to the connection address and honors forwarded headers only from an admin-configured trusted-proxy allowlist (`FFFL_TRUSTED_PROXIES`).
+- **Guard outbound IntelliSource requests against SSRF** by rejecting endpoints that resolve to loopback, link-local, or private address ranges, and **fix the embed CORS policy** so a wildcard origin is never combined with credentialed responses.
+
 ## [3.2.20] - 2026-06-02
 
 ### Fixed
