@@ -33,6 +33,14 @@ if (!function_exists('sanitize_text_field')) {
         return trim((string) preg_replace('/[\r\n\t ]+/', ' ', (string) $str));
     }
 }
+if (!function_exists('get_option')) {
+    // Passthrough: no options DB in the WordPress-free property process, so the
+    // registered default is returned. The trusted-proxy client-IP resolver reads
+    // its allowlist from the FFFL_TRUSTED_PROXIES constant when settings are empty.
+    function get_option($option, $default = false) {
+        return $default;
+    }
+}
 
 // Load the unit under test directly — no plugin boot, no WP.
 require_once dirname(__DIR__, 2) . '/includes/class-security.php';
