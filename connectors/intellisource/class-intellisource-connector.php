@@ -12,6 +12,7 @@
 
 namespace FFFL\Connectors\IntelliSource;
 
+use FFFL\Api\ApiClient;
 use FFFL\Api\ApiConnectorInterface;
 use FFFL\Api\AccountValidationResult;
 use FFFL\Api\EnrollmentResult;
@@ -497,10 +498,22 @@ class IntelliSourceConnector implements ApiConnectorInterface {
             $body = http_build_query($params);
         }
 
+        // SSRF guard: the endpoint is admin-supplied and only validated with
+        // FILTER_VALIDATE_URL, which accepts loopback/link-local/private hosts
+        // and non-http(s) schemes. Block those before the outbound call so a
+        // crafted endpoint can't reach internal services / cloud metadata.
+        if (!ApiClient::is_safe_outbound_url($url)) {
+            throw new \Exception(
+                __('Blocked request to a non-public or unsafe URL', 'formflow-lite')
+            );
+        }
+
         $args = [
             'method' => $method,
             'timeout' => 30,
             'sslverify' => true,
+            // Defence in depth: WordPress also refuses private/loopback hosts.
+            'reject_unsafe_urls' => true,
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded',
             ],
