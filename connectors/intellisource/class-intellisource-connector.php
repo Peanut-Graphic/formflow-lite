@@ -412,21 +412,8 @@ class IntelliSourceConnector implements ApiConnectorInterface {
      * @return array
      */
     public function get_presets(): array {
+        // Delmarva Delaware omitted: the DE program is not offered.
         return [
-            'delmarva_de' => [
-                'name' => __('Delmarva Power - Delaware', 'formflow-lite'),
-                'short_name' => 'Delmarva DE',
-                'state' => 'DE',
-                'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
-                'program_name' => 'Energy Wise Rewards',
-                'program_url' => 'https://energywiserewards.delmarva.com',
-                'support_phone' => '1-888-818-0075',
-                'support_email' => 'support@energywiserewards.com',
-                'branding' => [
-                    'primary_color' => '#0066cc',
-                    'logo_url' => '',
-                ],
-            ],
             'delmarva_md' => [
                 'name' => __('Delmarva Power - Maryland', 'formflow-lite'),
                 'short_name' => 'Delmarva MD',
