@@ -18,6 +18,16 @@
 - Live validate response shape (verified 2026-07-14): `{"status":"found","data":{"prospect_id":<int>,"first_name":"...","last_name":"...","name":"...","email":"...","utility_no":"...","enrollable_premises":[{"id":<int>,"address":"...","zip":"..."}]}}`. A non-eligible account returns a non-`found` `status`.
 - `portal_user_emails?email=` returns `{"available":<bool>,"has_login_history":<bool>}`.
 
+### Test harness (AUTHORITATIVE — overrides the per-task test scaffolding below)
+
+The repo's default Unit suite (`composer test` / `phpunit.xml`, base `FFFL\Tests\TestCase`) depends on an absent mock layer and is not run in CI. **Ignore it.** A dedicated WordPress-free suite already exists (committed in the pre-flight):
+
+- Put every PTR test in `tests/Ptr/`, namespace `FFFL\Tests\Ptr`, extending `PHPUnit\Framework\TestCase` (NOT `FFFL\Tests\TestCase`), file suffix `Test.php`.
+- Run tests with: `vendor/bin/phpunit -c phpunit.ptr.xml` (add `--filter <Name>` for one class). Never use `composer test`.
+- The bootstrap (`tests/Ptr/bootstrap.php`) already loads the connector interface + DTOs, the WP function shims (`__`, `esc_html`, `wp_json_encode`, `WP_Error`), and guard-requires the connector/seeder files. Do not add DB, hooks, or a WordPress runtime.
+- Tests must be **pure**: exercise the connector by instantiating it directly; for HTTP, subclass it and override the protected `http_get_json()` with a fixture (see Task 2). Do not call `ConnectorRegistry`, `do_action`, `add_action`, or `wpdb`.
+- **Per-task overrides:** where a task's snippet below uses `namespace FFFL\Tests\Unit`, `FFFL\Tests\TestCase`, `tests/Unit/...`, or `composer test`, substitute the conventions above. Task 1's connector registration is verified by instantiating `DominionPtrConnector` directly and asserting `get_id()`/`get_supported_features()`/`get_presets()` — NOT via the registry (the loader `add_action` wiring is real code but is verified by manual smoke / a future ContractWp test, not the pure suite). The seeder (Task 3) is split into a pure `build_instance_row(): array` (unit-tested here) plus a thin `create_instance(): int` DB wrapper (not unit-tested). Task 4's step-selection logic must be a pure function `DominionPtrConnector::enrollment_steps(array $settings): array` returning the ordered step keys (unit-tested here); wiring that into the form engine is integration (manual/ContractWp).
+
 ---
 
 ## Stage 1 — Validate half (no Itron dependency)
