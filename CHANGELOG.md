@@ -5,6 +5,12 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.24] - 2026-07-14
+
+### Fixed
+
+- **The scheduler's appointment calendar now loads.** The standalone Scheduler form's step-2 calendar was stuck on "Loading available dates…" forever (in demo and production). The template renders the calendar grid with a static spinner that the JS replaces after fetching slots — but the slot fetch (`initScheduleCalendar` → `loadScheduleSlots`) was only triggered when `step === 4`, the *enrollment* form's scheduling step. The scheduler reaches scheduling at step 2, so the fetch never fired. Calendar initialization is now keyed on the presence of the `#ff-calendar-grid` element in the loaded step, so both the enrollment (step 4) and scheduler (step 2) flows initialize it.
+
 ## [3.2.23] - 2026-07-14
 
 ### Fixed
