@@ -117,7 +117,18 @@ class DominionPtrConnector implements ApiConnectorInterface {
     }
 
     public function submit_enrollment(array $form_data, array $config): EnrollmentResult {
-        // Implemented in Task 5 (mock) / Task 7 (live).
+        if (!empty($config['test_mode'])) {
+            $mapped = $this->map_fields($form_data);
+            return new EnrollmentResult([
+                'success' => true,
+                'confirmation_number' => 'PTR-DEMO-' . substr(md5($mapped['utility_no'] . $mapped['email']), 0, 8),
+                'data' => [
+                    'account_id' => 0,
+                    'set_password_token' => 'demo-token',
+                ],
+            ]);
+        }
+        // Live path implemented in Stage 2 (gated on Itron).
         return new EnrollmentResult(['success' => false, 'error_code' => 'not_implemented']);
     }
 
