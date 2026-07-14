@@ -5,6 +5,12 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.23] - 2026-07-14
+
+### Fixed
+
+- **The "Verify Account" step now shows the correct utility on Pepco forms.** The account-number label derived the utility name as `content['utility_name'] ?? 'Delmarva Power'`, and that content field is not editable in the builder — so every Pepco form fell back to **"Delmarva Power Account Number"** (and the matching help text), the wrong utility. The brand is now derived from the form's utility key via `Utilities::getBrandName()` (`pepco_*` → "Pepco", `delmarva_*` → "Delmarva Power"), with an explicit `content['utility_name']` override still honored when set. The duplicate brand map in the email handler was consolidated onto the same helper so the two can't drift.
+
 ## [3.2.22] - 2026-07-14
 
 ### Fixed

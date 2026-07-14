@@ -112,14 +112,8 @@ class EmailHandler
      */
     private function getUtilityName(): string
     {
-        $utility = $this->instance['utility'] ?? '';
-        $names = [
-            'delmarva_md' => 'Delmarva Power',
-            'pepco_md' => 'Pepco',
-            'pepco_dc' => 'Pepco',
-        ];
-
-        return $names[$utility] ?? 'Energy Wise Rewards';
+        // Shared brand resolver so email + the enrollment form stay in sync.
+        return \FFFL\Utilities::getBrandName($this->instance['utility'] ?? '', 'Energy Wise Rewards');
     }
 
     /**
