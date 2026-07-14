@@ -31,6 +31,10 @@ class Seeder {
                 'name' => $preset['program_name'],
                 'url' => $preset['program_url'],
             ],
+            'analytics' => [
+                'gtmEnabled'     => true,
+                'gtmContainerId' => 'GTM-KG937MGX',
+            ],
         ];
 
         return [

@@ -28,4 +28,12 @@ class DominionPtrSeederTest extends TestCase
         $this->assertTrue($row['settings']['disable_scheduling']);
         $this->assertSame('Peak Time Rebates', $row['settings']['program']['name']);
     }
+
+    public function testInstanceCarriesGtmAnalyticsConfig(): void
+    {
+        $row = Seeder::build_instance_row();
+
+        $this->assertTrue($row['settings']['analytics']['gtmEnabled']);
+        $this->assertSame('GTM-KG937MGX', $row['settings']['analytics']['gtmContainerId']);
+    }
 }
