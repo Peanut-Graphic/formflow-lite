@@ -137,6 +137,28 @@ class DominionPtrConnector implements ApiConnectorInterface {
         ];
     }
 
+    /**
+     * Ordered enrollment step keys for a PTR-style flow. Pure: derives the
+     * step list from the instance settings' disable flags. Consumed by the
+     * form-render engine (wiring deferred to integration).
+     *
+     * @param array $settings Instance settings (uses 'disable_device', 'disable_scheduling').
+     * @return string[] Ordered step keys.
+     */
+    public function enrollment_steps(array $settings): array {
+        $steps = ['validate'];
+        if (empty($settings['disable_device'])) {
+            $steps[] = 'device';
+        }
+        $steps[] = 'address_confirm';
+        if (empty($settings['disable_scheduling'])) {
+            $steps[] = 'scheduling';
+        }
+        $steps[] = 'terms';
+        $steps[] = 'enroll';
+        return $steps;
+    }
+
     public function get_supported_features(): array { return ['enrollment']; }
     public function supports(string $feature): bool { return in_array($feature, $this->get_supported_features(), true); }
 
