@@ -18,8 +18,11 @@ $zip = $form_data['zip'] ?? '';
 $cycling_level = $form_data['cycling_level'] ?? '100';
 $validation_error = $form_data['validation_error'] ?? '';
 
-// Get utility name from instance settings
-$utility_name = $instance['settings']['content']['utility_name'] ?? 'Delmarva Power';
+// Get utility name: honor a non-empty content override, otherwise derive the
+// brand from the form's utility so Pepco forms don't fall back to "Delmarva
+// Power" (the field is not editable in the builder). Empty is treated as absent.
+$utility_name = ($instance['settings']['content']['utility_name'] ?? '')
+    ?: \FFFL\Utilities::getBrandName($instance['utility'] ?? '');
 
 // Get customizable content
 $step_title = fffl_get_content($instance, 'step2_title', __('Verify Your Account', 'formflow-lite'));

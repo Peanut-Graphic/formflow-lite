@@ -59,6 +59,30 @@ class Utilities
     }
 
     /**
+     * Get the customer-facing utility brand name for a utility key.
+     *
+     * This is the name a customer sees on their bill ("Pepco", "Delmarva
+     * Power") — as opposed to getName(), which returns the full program label
+     * ("Pepco - Washington DC"). Used for phrases like "{brand} Account Number".
+     * Derived from the key prefix so it stays correct for every jurisdiction of
+     * a utility without a per-key list.
+     *
+     * @param string $key      Utility key (e.g. 'pepco_dc', 'delmarva_md').
+     * @param string $fallback Returned when the utility is unrecognized.
+     * @return string
+     */
+    public static function getBrandName(string $key, string $fallback = 'your utility'): string
+    {
+        if (strpos($key, 'pepco') === 0) {
+            return 'Pepco';
+        }
+        if (strpos($key, 'delmarva') === 0) {
+            return 'Delmarva Power';
+        }
+        return $fallback;
+    }
+
+    /**
      * Get utility options for select dropdowns
      *
      * @return array

@@ -11,6 +11,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Dominion Peak Time Rebates enrollment — Stage 1.** New `dominion-ptr` connector speaking Dominion's IntelliSource JSON API (`prospect/validate`, `portal_user_emails`) with live account validation, plus a `dominion_ptr` enrollment instance, a reduced PTR flow (`enrollment_steps()` omits the device and scheduling steps), a test-mode enrollment stub for an end-to-end demo, and dataLayer conversion config on the instance. Live enrollment (`prospect/enroll`) and the customer-portal hand-off are Stage 2, gated on IntelliSource API credentials from the vendor. A dedicated WordPress-free test suite (`phpunit.ptr.xml`, `tests/Ptr/`) covers the connector logic and is wired into the blocking CI job. The one required GTM container change is documented in `docs/superpowers/ptr-gtm-trigger.md`; the Stage 1 manual demo path is in `docs/superpowers/ptr-stage1-demo.md`. The existing IntelliSource (XML) connector serving the Energy Wise programs is untouched.
 
+## [3.2.24] - 2026-07-14
+
+### Fixed
+
+- **The scheduler's appointment calendar now loads.** The standalone Scheduler form's step-2 calendar was stuck on "Loading available dates…" forever (in demo and production). The template renders the calendar grid with a static spinner that the JS replaces after fetching slots — but the slot fetch (`initScheduleCalendar` → `loadScheduleSlots`) was only triggered when `step === 4`, the *enrollment* form's scheduling step. The scheduler reaches scheduling at step 2, so the fetch never fired. Calendar initialization is now keyed on the presence of the `#ff-calendar-grid` element in the loaded step, so both the enrollment (step 4) and scheduler (step 2) flows initialize it.
+
+## [3.2.23] - 2026-07-14
+
+### Fixed
+
+- **The "Verify Account" step now shows the correct utility on Pepco forms.** The account-number label derived the utility name as `content['utility_name'] ?? 'Delmarva Power'`, and that content field is not editable in the builder — so every Pepco form fell back to **"Delmarva Power Account Number"** (and the matching help text), the wrong utility. The brand is now derived from the form's utility key via `Utilities::getBrandName()` (`pepco_*` → "Pepco", `delmarva_*` → "Delmarva Power"), with an explicit `content['utility_name']` override still honored when set. The duplicate brand map in the email handler was consolidated onto the same helper so the two can't drift.
+
 ## [3.2.22] - 2026-07-14
 
 ### Fixed
