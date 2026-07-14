@@ -114,7 +114,6 @@ class EmailHandler
     {
         $utility = $this->instance['utility'] ?? '';
         $names = [
-            'delmarva_de' => 'Delmarva Power',
             'delmarva_md' => 'Delmarva Power',
             'pepco_md' => 'Pepco',
             'pepco_dc' => 'Pepco',

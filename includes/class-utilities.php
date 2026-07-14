@@ -25,8 +25,9 @@ class Utilities
      */
     public static function getAll(): array
     {
+        // Delmarva Delaware is intentionally omitted: the Delaware Energy Wise
+        // Rewards program is not offered (no DE enrollment or scheduler).
         return [
-            'delmarva_de' => self::getDelmarvaDE(),
             'delmarva_md' => self::getDelmarvaMD(),
             'pepco_md' => self::getPepcoMD(),
             'pepco_dc' => self::getPepcoDC(),
@@ -69,46 +70,6 @@ class Utilities
             $options[$key] = $utility['name'];
         }
         return $options;
-    }
-
-    /**
-     * Get Delmarva Power - Delaware configuration
-     *
-     * @return array
-     */
-    private static function getDelmarvaDE(): array
-    {
-        return [
-            'name' => 'Delmarva Power - Delaware',
-            'short_name' => 'Delmarva DE',
-            'state' => 'DE',
-            'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
-            'program_name' => 'Energy Wise Rewards',
-            'program_url' => 'https://energywiserewards.delmarva.com',
-            'support_phone' => '1-888-818-0075',
-            'support_email' => 'support@energywiserewards.com',
-            'equipment_types' => [
-                'thermostat' => ['05', '10', '15', '20'],
-                'dcu' => ['01'],
-            ],
-            'time_slots' => [
-                'AM' => ['label' => 'Morning', 'range' => '8:00 AM - 12:00 PM'],
-                'MD' => ['label' => 'Midday', 'range' => '10:00 AM - 2:00 PM'],
-                'PM' => ['label' => 'Afternoon', 'range' => '12:00 PM - 5:00 PM'],
-                'EV' => ['label' => 'Evening', 'range' => '3:00 PM - 7:00 PM'],
-            ],
-            'scheduling' => [
-                'min_days_out' => 3,
-                'max_days_out' => 60,
-                'exclude_weekends' => false,
-            ],
-            'branding' => [
-                'primary_color' => '#0066cc',
-                'logo_url' => '',
-            ],
-            'terms_url' => 'https://energywiserewards.delmarva.com/terms',
-            'privacy_url' => 'https://energywiserewards.delmarva.com/privacy',
-        ];
     }
 
     /**
@@ -283,7 +244,6 @@ class Utilities
     {
         return [
             'DC' => 'District of Columbia',
-            'DE' => 'Delaware',
             'MD' => 'Maryland',
         ];
     }

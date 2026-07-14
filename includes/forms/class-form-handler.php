@@ -146,7 +146,7 @@ class FormHandler
         }
 
         // State validation
-        if (!empty($data['state']) && !in_array($data['state'], ['DC', 'DE', 'MD'], true)) {
+        if (!empty($data['state']) && !in_array($data['state'], ['DC', 'MD'], true)) {
             $this->errors['state'] = __('Please select a valid state.', 'formflow-lite');
         }
 

@@ -846,13 +846,8 @@ class Admin {
      * Get utility preset configurations
      */
     public function get_utility_presets(): array {
+        // Delmarva Delaware omitted: the DE program is not offered.
         return [
-            'delmarva_de' => [
-                'name' => 'Delmarva Power - Delaware',
-                'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
-                'support_email_from' => 'support_delmarvaewr@powerportal.com',
-                'support_email_to' => 'customercare@comverge.com,comverge@rdimarketing.com'
-            ],
             'delmarva_md' => [
                 'name' => 'Delmarva Power - Maryland',
                 'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
@@ -910,9 +905,22 @@ class Admin {
             }
         }
 
-        // Sanitize content settings
-        if (!empty($new_settings['content'])) {
-            $new_settings['content'] = array_map('sanitize_textarea_field', $new_settings['content']);
+        // Sanitize content settings. Most fields are plain text, but a few are
+        // rich HTML (rendered on the frontend via wp_kses_post) and must keep
+        // their markup — sanitizing those with sanitize_textarea_field would
+        // strip every tag and flatten the formatting the editor produced.
+        if (!empty($new_settings['content']) && is_array($new_settings['content'])) {
+            $html_content_keys = ['terms_content', 'rules_content', 'email_body'];
+            foreach ($new_settings['content'] as $content_key => $content_value) {
+                if (is_array($content_value)) {
+                    continue;
+                }
+                if (in_array($content_key, $html_content_keys, true)) {
+                    $new_settings['content'][$content_key] = wp_kses_post($content_value);
+                } else {
+                    $new_settings['content'][$content_key] = sanitize_textarea_field($content_value);
+                }
+            }
         }
 
         // Sanitize other settings

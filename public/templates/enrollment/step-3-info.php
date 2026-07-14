@@ -27,7 +27,14 @@ $alt_phone_type = $form_data['alt_phone_type'] ?? 'home';
 $street = $form_data['street'] ?? ($form_data['validated_street'] ?? '');
 $street2 = $form_data['street2'] ?? '';
 $city = $form_data['city'] ?? ($form_data['validated_city'] ?? '');
-$state = $form_data['state'] ?? ($form_data['validated_state'] ?? fffl_get_default_state($instance));
+// Use ?: (not ??) so an empty string (e.g. address validation returned no
+// state) falls through to the configured default_state instead of shadowing it.
+$state = ($form_data['state'] ?? '') ?: (($form_data['validated_state'] ?? '') ?: fffl_get_default_state($instance));
+
+// DC is a federal district, not a state: relabel the field when DC is selected.
+$state_label_text = ($state === 'DC')
+    ? __('District', 'formflow-lite')
+    : __('State', 'formflow-lite');
 $zip = $form_data['zip'] ?? ($form_data['validated_zip'] ?? '');
 
 // Property ownership fields
@@ -220,13 +227,14 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue to Scheduling',
 
                 <div class="ff-field ff-field-required">
                     <label for="state" class="ff-label">
-                        <?php esc_html_e('State', 'formflow-lite'); ?>
+                        <span class="ff-state-label"
+                              data-label-state="<?php echo esc_attr__('State', 'formflow-lite'); ?>"
+                              data-label-district="<?php echo esc_attr__('District', 'formflow-lite'); ?>"><?php echo esc_html($state_label_text); ?></span>
                         <span class="ff-required">*</span>
                     </label>
                     <select name="state" id="state" class="ff-select" required autocomplete="address-level1">
                         <option value=""><?php esc_html_e('Select State', 'formflow-lite'); ?></option>
                         <option value="DC" <?php selected($state, 'DC'); ?>>District of Columbia</option>
-                        <option value="DE" <?php selected($state, 'DE'); ?>>Delaware</option>
                         <option value="MD" <?php selected($state, 'MD'); ?>>Maryland</option>
                     </select>
                 </div>

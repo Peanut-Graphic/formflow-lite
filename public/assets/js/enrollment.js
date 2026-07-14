@@ -139,6 +139,9 @@
         // Ownership "Lease" toggle for owner approval checkbox
         $(document).on('change', '#ownership', handleOwnershipChange);
 
+        // State field label: DC is a federal district, not a state
+        $(document).on('change', '#state', handleStateLabel);
+
         // Cycling level radio selection styling
         $(document).on('change', '.ff-cycling-options input[type="radio"]', handleCyclingSelection);
 
@@ -186,6 +189,18 @@
             $approvalWrap.slideUp(200);
             $approvalWrap.find('input').prop('checked', false);
         }
+    }
+
+    /**
+     * Update the state field label when DC (a federal district, not a state)
+     * is selected. Reads localized strings from the label's data attributes.
+     */
+    function handleStateLabel() {
+        var $label = $('.ff-state-label');
+        if (!$label.length) return;
+
+        var isDistrict = $(this).val() === 'DC';
+        $label.text(isDistrict ? $label.data('label-district') : $label.data('label-state'));
     }
 
     /**
