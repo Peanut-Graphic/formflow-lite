@@ -23,10 +23,9 @@ class DominionPtrSeederTest extends TestCase
         $this->assertSame(1, $row['test_mode']);
         $this->assertStringContainsString('/ptr/residential/api', $row['api_endpoint']);
 
-        $settings = json_decode($row['settings'], true);
-        $this->assertSame('dominion-ptr', $settings['connector']);
-        $this->assertTrue($settings['disable_device']);
-        $this->assertTrue($settings['disable_scheduling']);
-        $this->assertSame('Peak Time Rebates', $settings['program']['name']);
+        $this->assertSame('dominion-ptr', $row['settings']['connector']);
+        $this->assertTrue($row['settings']['disable_device']);
+        $this->assertTrue($row['settings']['disable_scheduling']);
+        $this->assertSame('Peak Time Rebates', $row['settings']['program']['name']);
     }
 }

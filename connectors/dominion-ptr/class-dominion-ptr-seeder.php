@@ -39,7 +39,7 @@ class Seeder {
             'utility' => 'dominion',
             'form_type' => 'enrollment',
             'api_endpoint' => $preset['api_endpoint'],
-            'settings' => wp_json_encode($settings),
+            'settings' => $settings,
             'is_active' => 1,
             'test_mode' => 1,
         ];
@@ -52,6 +52,9 @@ class Seeder {
      */
     public static function create_instance(): int {
         $id = Database::instance()->create_instance(self::build_instance_row());
+        if ($id === false) {
+            throw new \RuntimeException('Failed to create the Dominion PTR instance.');
+        }
         return (int) $id;
     }
 }
