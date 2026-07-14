@@ -16,6 +16,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **The state field is relabeled "District" when the District of Columbia is selected.** DC is a federal district, not a state; the customer-information label now reads "District" whenever DC is the selected value (whether from the instance default or the customer's own choice) and reverts to "State" otherwise.
 
+### Removed
+
+- **Delmarva Power – Delaware is no longer offered.** The Delaware Energy Wise Rewards program is not run through this plugin (no DE enrollment or scheduler), so the `delmarva_de` utility preset was removed from the registry, admin presets, and email utility-name map, and **Delaware ("DE") was removed as a selectable state** from the enrollment customer-information dropdown, the admin Default State dropdown, and state validation. The plugin now serves DC and MD only (Pepco DC, Pepco MD, Delmarva MD). *Note: if a `delmarva_de` form instance still exists in the database, delete it in wp-admin — with the preset removed, that instance's utility can no longer resolve.*
+
 ## [3.2.21] - 2026-07-05
 
 ### Security

@@ -30,7 +30,6 @@ $maintenance = $instance['settings']['maintenance'] ?? [];
 $states = [
     '' => __('-- Select State --', 'formflow-lite'),
     'DC' => 'District of Columbia',
-    'DE' => 'Delaware',
     'MD' => 'Maryland',
 ];
 

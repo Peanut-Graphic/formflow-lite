@@ -846,13 +846,8 @@ class Admin {
      * Get utility preset configurations
      */
     public function get_utility_presets(): array {
+        // Delmarva Delaware omitted: the DE program is not offered.
         return [
-            'delmarva_de' => [
-                'name' => 'Delmarva Power - Delaware',
-                'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
-                'support_email_from' => 'support_delmarvaewr@powerportal.com',
-                'support_email_to' => 'customercare@comverge.com,comverge@rdimarketing.com'
-            ],
             'delmarva_md' => [
                 'name' => 'Delmarva Power - Maryland',
                 'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',

@@ -161,8 +161,8 @@ interface ApiConnectorInterface {
      * @return array Array of presets keyed by identifier
      * Example:
      * [
-     *     'delmarva_de' => [
-     *         'name' => 'Delmarva Power - Delaware',
+     *     'delmarva_md' => [
+     *         'name' => 'Delmarva Power - Maryland',
      *         'api_endpoint' => 'https://...',
      *         'settings' => [...]
      *     ]

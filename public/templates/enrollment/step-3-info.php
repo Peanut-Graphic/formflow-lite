@@ -235,7 +235,6 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue to Scheduling',
                     <select name="state" id="state" class="ff-select" required autocomplete="address-level1">
                         <option value=""><?php esc_html_e('Select State', 'formflow-lite'); ?></option>
                         <option value="DC" <?php selected($state, 'DC'); ?>>District of Columbia</option>
-                        <option value="DE" <?php selected($state, 'DE'); ?>>Delaware</option>
                         <option value="MD" <?php selected($state, 'MD'); ?>>Maryland</option>
                     </select>
                 </div>
