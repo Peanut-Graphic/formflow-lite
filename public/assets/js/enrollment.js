@@ -641,8 +641,13 @@
                 if (response.success) {
                     $content.html(response.data.html);
 
-                    // Initialize step-specific functionality
-                    if (step === 4) {
+                    // Initialize the appointment calendar whenever the loaded
+                    // step actually renders it. Enrollment reaches scheduling at
+                    // step 4, but the standalone scheduler reaches it at step 2 —
+                    // keying on the step number left the scheduler's calendar
+                    // stuck on "Loading available dates..." forever, since the
+                    // slot fetch never fired. Key on the element instead.
+                    if ($content.find('#ff-calendar-grid').length) {
                         initScheduleCalendar();
                     }
 
