@@ -7,6 +7,7 @@ define('FFFL_DOMINION_PTR_PATH', __DIR__);
 
 function load_connector(): void {
     require_once FFFL_DOMINION_PTR_PATH . '/class-dominion-ptr-connector.php';
+    require_once FFFL_DOMINION_PTR_PATH . '/class-dominion-ptr-seeder.php';
 }
 
 function register_connector($registry): void {
