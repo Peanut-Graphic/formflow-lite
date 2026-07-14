@@ -65,8 +65,55 @@ class DominionPtrConnector implements ApiConnectorInterface {
     }
 
     public function validate_account(array $data, array $config): AccountValidationResult {
-        // Implemented in Task 2.
-        return new AccountValidationResult(['is_valid' => false, 'error_code' => 'not_implemented']);
+        $base = rtrim($config['api_endpoint'], '/');
+        $mapped = $this->map_fields($data);
+
+        try {
+            $validate = $this->http_get_json($base . '/prospect/validate', [
+                'email' => $mapped['email'],
+                'zip' => $mapped['zip'],
+                'utility_no' => $mapped['utility_no'],
+            ]);
+        } catch (\Exception $e) {
+            return new AccountValidationResult(['is_valid' => false, 'error_code' => 'connection_error', 'error_message' => $e->getMessage()]);
+        }
+
+        return $this->parse_validate($validate, $base, $mapped);
+    }
+
+    /**
+     * Parses the /prospect/validate response and, on a found status,
+     * enriches it with portal-availability data from /portal_user_emails
+     * (non-fatal if that lookup fails).
+     */
+    private function parse_validate(array $validate, string $base, array $mapped): AccountValidationResult {
+        $status = $validate['status'] ?? 'error';
+        if ($status !== 'found' || empty($validate['data'])) {
+            return new AccountValidationResult(['is_valid' => false, 'error_code' => (string) $status, 'raw_response' => $validate]);
+        }
+
+        // Existing-account check (non-fatal if it fails).
+        $portal = ['available' => null, 'has_login_history' => null];
+        try {
+            $portal = $this->http_get_json($base . '/portal_user_emails', ['email' => $mapped['email']]);
+        } catch (\Exception $e) { /* leave nulls */ }
+
+        $d = $validate['data'];
+        return new AccountValidationResult([
+            'is_valid' => true,
+            'customer_data' => [
+                'prospect_id' => $d['prospect_id'] ?? null,
+                'first_name' => $d['first_name'] ?? '',
+                'last_name' => $d['last_name'] ?? '',
+                'name' => $d['name'] ?? '',
+                'email' => $d['email'] ?? $mapped['email'],
+                'utility_no' => $d['utility_no'] ?? $mapped['utility_no'],
+                'enrollable_premises' => $d['enrollable_premises'] ?? [],
+                'portal_available' => $portal['available'] ?? null,
+                'has_login_history' => $portal['has_login_history'] ?? null,
+            ],
+            'raw_response' => $validate,
+        ]);
     }
 
     public function submit_enrollment(array $form_data, array $config): EnrollmentResult {
