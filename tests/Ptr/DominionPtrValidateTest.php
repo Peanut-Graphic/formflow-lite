@@ -4,6 +4,11 @@ namespace FFFL\Tests\Ptr;
 use PHPUnit\Framework\TestCase;
 use FFFL\Connectors\DominionPtr\DominionPtrConnector;
 
+/**
+ * Live-response shape verified out-of-band against the real endpoint on
+ * 2026-07-14; the fixtures below are sourced from that real
+ * `prospect/validate` / `portal_user_emails` JSON.
+ */
 class DominionPtrValidateTest extends TestCase
 {
     private function connectorReturning(array $byPath): DominionPtrConnector
@@ -41,6 +46,11 @@ class DominionPtrValidateTest extends TestCase
         $this->assertSame(728, $r->get_customer_data()['prospect_id']);
         $this->assertCount(1, $r->get_customer_data()['enrollable_premises']);
         $this->assertFalse($r->get_customer_data()['portal_available']);
+        $this->assertSame('ASHOK', $r->get_customer_data()['first_name']);
+        $this->assertSame('RAMASUBBU', $r->get_customer_data()['last_name']);
+        $this->assertSame('ASHOK RAMASUBBU', $r->get_customer_data()['name']);
+        $this->assertSame('X@GMAIL.COM', $r->get_customer_data()['email']);
+        $this->assertSame('210010506231', $r->get_customer_data()['utility_no']);
     }
 
     public function testIneligibleAccountReturnsInvalid(): void
@@ -59,23 +69,38 @@ class DominionPtrValidateTest extends TestCase
         $this->assertSame('not_found', $r->get_error_code());
     }
 
-    public function testLiveValidateReadOnly(): void
+    public function testConnectionErrorWhenValidateThrows(): void
     {
-        if (getenv('FFFL_LIVE_TESTS') !== '1') {
-            $this->markTestSkipped('Set FFFL_LIVE_TESTS=1 to hit the live read-only validate endpoint.');
-        }
+        $c = $this->connectorReturning([]);
 
-        if (!class_exists(\FFFL\Api\ApiClient::class)) {
-            require_once dirname(__DIR__, 2) . '/includes/api/class-api-client.php';
-        }
-
-        $c = new DominionPtrConnector();
         $r = $c->validate_account(
-            ['account_number' => '210010506231', 'zip' => '23116', 'email' => 'Rspectesting123@gmail.com'],
+            ['account_number' => '210010506231', 'zip' => '23116', 'email' => 'x@gmail.com'],
             ['api_endpoint' => 'https://www.dominionenergyptr.com/ptr/residential/api']
         );
-        // Read-only. NEVER call submit_enrollment with this account.
+
+        $this->assertFalse($r->is_valid());
+        $this->assertSame('connection_error', $r->get_error_code());
+    }
+
+    public function testPortalLookupFailureIsNonFatal(): void
+    {
+        $c = $this->connectorReturning([
+            'prospect/validate' => ['status' => 'found', 'data' => [
+                'prospect_id' => 728, 'first_name' => 'ASHOK', 'last_name' => 'RAMASUBBU',
+                'name' => 'ASHOK RAMASUBBU', 'email' => 'X@GMAIL.COM', 'utility_no' => '210010506231',
+                'enrollable_premises' => [['id' => 728, 'address' => '9593 SYCAMORE GROVE WAY, MECHANICSVILLE, VA 23116', 'zip' => '23116']],
+            ]],
+            // No fixture for portal_user_emails, so that GET throws.
+        ]);
+
+        $r = $c->validate_account(
+            ['account_number' => '210010506231', 'zip' => '23116', 'email' => 'x@gmail.com'],
+            ['api_endpoint' => 'https://www.dominionenergyptr.com/ptr/residential/api']
+        );
+
         $this->assertTrue($r->is_valid());
-        $this->assertNotEmpty($r->get_customer_data()['enrollable_premises']);
+        $this->assertCount(1, $r->get_customer_data()['enrollable_premises']);
+        $this->assertNull($r->get_customer_data()['portal_available']);
+        $this->assertNull($r->get_customer_data()['has_login_history']);
     }
 }
