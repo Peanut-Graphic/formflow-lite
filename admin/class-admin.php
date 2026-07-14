@@ -910,9 +910,22 @@ class Admin {
             }
         }
 
-        // Sanitize content settings
-        if (!empty($new_settings['content'])) {
-            $new_settings['content'] = array_map('sanitize_textarea_field', $new_settings['content']);
+        // Sanitize content settings. Most fields are plain text, but a few are
+        // rich HTML (rendered on the frontend via wp_kses_post) and must keep
+        // their markup — sanitizing those with sanitize_textarea_field would
+        // strip every tag and flatten the formatting the editor produced.
+        if (!empty($new_settings['content']) && is_array($new_settings['content'])) {
+            $html_content_keys = ['terms_content', 'rules_content', 'email_body'];
+            foreach ($new_settings['content'] as $content_key => $content_value) {
+                if (is_array($content_value)) {
+                    continue;
+                }
+                if (in_array($content_key, $html_content_keys, true)) {
+                    $new_settings['content'][$content_key] = wp_kses_post($content_value);
+                } else {
+                    $new_settings['content'][$content_key] = sanitize_textarea_field($content_value);
+                }
+            }
         }
 
         // Sanitize other settings

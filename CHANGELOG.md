@@ -5,6 +5,17 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.22] - 2026-07-14
+
+### Fixed
+
+- **The configured Default State now applies on the public form.** On the customer-information step, the state field fell back to the instance's Default State only when the value was strictly unset; account validation always writes a `validated_state` (empty string when the API returns no state), and that empty string shadowed the default via `??`, leaving the field on "Select State." The fallback chain now treats an empty string as absent, so the Default State is honored.
+- **HTML formatting in Terms & Conditions (and other rich-text content) survives saving.** The instance save handler sanitized every content field with `sanitize_textarea_field`, which strips all tags — so the Terms Content and email-body editors (both rendered as HTML on the frontend via `wp_kses_post`) had their markup flattened to plain text on save. Rich-HTML content keys are now sanitized with `wp_kses_post`, preserving headings, lists, tables, and emphasis while other fields stay plain-text.
+
+### Changed
+
+- **The state field is relabeled "Federal District" when the District of Columbia is selected.** DC is a federal district, not a state; the customer-information label now reads "Federal District" whenever DC is the selected value (whether from the instance default or the customer's own choice) and reverts to "State" otherwise.
+
 ## [3.2.21] - 2026-07-05
 
 ### Security
