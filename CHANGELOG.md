@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **The state field is relabeled "Federal District" when the District of Columbia is selected.** DC is a federal district, not a state; the customer-information label now reads "Federal District" whenever DC is the selected value (whether from the instance default or the customer's own choice) and reverts to "State" otherwise.
+- **The state field is relabeled "District" when the District of Columbia is selected.** DC is a federal district, not a state; the customer-information label now reads "District" whenever DC is the selected value (whether from the instance default or the customer's own choice) and reverts to "State" otherwise.
 
 ## [3.2.21] - 2026-07-05
 

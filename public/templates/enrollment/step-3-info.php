@@ -33,7 +33,7 @@ $state = ($form_data['state'] ?? '') ?: (($form_data['validated_state'] ?? '') ?
 
 // DC is a federal district, not a state: relabel the field when DC is selected.
 $state_label_text = ($state === 'DC')
-    ? __('Federal District', 'formflow-lite')
+    ? __('District', 'formflow-lite')
     : __('State', 'formflow-lite');
 $zip = $form_data['zip'] ?? ($form_data['validated_zip'] ?? '');
 
@@ -229,7 +229,7 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue to Scheduling',
                     <label for="state" class="ff-label">
                         <span class="ff-state-label"
                               data-label-state="<?php echo esc_attr__('State', 'formflow-lite'); ?>"
-                              data-label-district="<?php echo esc_attr__('Federal District', 'formflow-lite'); ?>"><?php echo esc_html($state_label_text); ?></span>
+                              data-label-district="<?php echo esc_attr__('District', 'formflow-lite'); ?>"><?php echo esc_html($state_label_text); ?></span>
                         <span class="ff-required">*</span>
                     </label>
                     <select name="state" id="state" class="ff-select" required autocomplete="address-level1">
