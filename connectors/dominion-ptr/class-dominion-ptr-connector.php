@@ -218,4 +218,136 @@ class DominionPtrConnector implements ApiConnectorInterface {
         }
         return $decoded;
     }
+
+    /**
+     * POST a JSON endpoint (form-encoded body, JSON response). Protected so
+     * tests can override with a fixture. Mirrors http_get_json.
+     *
+     * @return array Decoded JSON as an associative array.
+     * @throws \Exception on transport error, non-2xx, or invalid JSON.
+     */
+    protected function http_post_json(string $url, array $data): array {
+        if (!ApiClient::is_safe_outbound_url($url)) {
+            throw new \Exception(__('Blocked request to a non-public or unsafe URL', 'formflow-lite'));
+        }
+        $response = wp_remote_request($url, [
+            'method' => 'POST',
+            'timeout' => 30,
+            'sslverify' => true,
+            'reject_unsafe_urls' => true,
+            'body' => $data,
+        ]);
+        if (is_wp_error($response)) {
+            throw new \Exception($response->get_error_message());
+        }
+        $status = (int) wp_remote_retrieve_response_code($response);
+        $body = wp_remote_retrieve_body($response);
+        if ($status >= 400) {
+            throw new \Exception("HTTP {$status}");
+        }
+        $decoded = json_decode($body, true);
+        if (!is_array($decoded)) {
+            throw new \Exception(__('Invalid JSON response', 'formflow-lite'));
+        }
+        return $decoded;
+    }
+
+    // ------------------------------------------------------------------
+    // Stage 2 scaffolding — request/response shapes reverse-engineered from
+    // the IntelliSource SPA client code (see
+    // Peanut-meta/dominion-ptr-intellisource-api-contract.md). CONFIRMED from
+    // their client except where marked. None of these are wired to fire from
+    // the live form yet; that happens once Itron confirms the open questions
+    // (byot-vs-full enroll, whether verification is required, IP allowlist).
+    // ------------------------------------------------------------------
+
+    /**
+     * Send an identity-verification code (email or SMS).
+     * CONFIRMED: POST api/prospect_verifications with the payload below; the
+     * response carries the new verification record id (SPA reads `t.id`).
+     *
+     * @param array $data   Requires: email; optional: mobile_telephone,
+     *                      first_name, last_name, method ('email'|'sms'), byot_only.
+     * @param array $config Requires: api_endpoint.
+     * @return array {sent: bool, verification_id: ?int, method: string, raw_response: array}
+     */
+    public function send_verification(array $data, array $config): array {
+        $url = rtrim($config['api_endpoint'], '/') . '/prospect_verifications';
+        $payload = [
+            'method' => $data['method'] ?? 'email',
+            'preferred_format' => 'json',
+            'email' => $data['email'] ?? '',
+            'mobile_telephone' => $data['mobile_telephone'] ?? '',
+            'first_name' => $data['first_name'] ?? '',
+            'last_name' => $data['last_name'] ?? '',
+            'byot_only' => $data['byot_only'] ?? true,
+        ];
+        try {
+            $resp = $this->http_post_json($url, $payload);
+        } catch (\Exception $e) {
+            return ['sent' => false, 'verification_id' => null, 'method' => $payload['method'], 'raw_response' => ['error' => $e->getMessage()]];
+        }
+        return [
+            'sent' => isset($resp['id']),
+            'verification_id' => $resp['id'] ?? null,
+            'method' => $payload['method'],
+            'raw_response' => $resp,
+        ];
+    }
+
+    /**
+     * Check a verification code the customer entered.
+     * CONFIRMED: GET api/prospect_verifications/{id}?verification_code=…
+     * INFERRED: the exact "passed" field in the response — confirm against a
+     * live test. We treat an explicit truthy `verified`/`confirmed` as passed.
+     *
+     * @return array {verified: bool, raw_response: array}
+     */
+    public function check_verification(string $verification_id, string $code, array $config): array {
+        $url = rtrim($config['api_endpoint'], '/') . '/prospect_verifications/' . rawurlencode($verification_id);
+        try {
+            $resp = $this->http_get_json($url, ['verification_code' => $code, 'preferred_format' => 'json']);
+        } catch (\Exception $e) {
+            return ['verified' => false, 'raw_response' => ['error' => $e->getMessage()]];
+        }
+        $verified = ! empty($resp['verified']) || ! empty($resp['confirmed']) || (($resp['status'] ?? null) === 'verified');
+        return ['verified' => $verified, 'raw_response' => $resp];
+    }
+
+    /**
+     * Provision the portal account for a freshly enrolled prospect and get the
+     * hand-off token. CONFIRMED: POST api/portal_user/create_from_prospect with
+     * the payload below; the SPA reads `portal_user.id` and
+     * `portal_user.enrollment_token` from the response and logs the customer in.
+     *
+     * @param array $data   Requires: premise_id, zip, utility_no, email,
+     *                      first_name, last_name, mobile_telephone.
+     * @param array $config Requires: api_endpoint.
+     * @return array {success: bool, portal_user_id: ?int, enrollment_token: ?string, raw_response: array}
+     */
+    public function create_portal_handoff(array $data, array $config): array {
+        $url = rtrim($config['api_endpoint'], '/') . '/portal_user/create_from_prospect';
+        $payload = [
+            'premise_id' => $data['premise_id'] ?? null,
+            'zip' => preg_replace('/\D/', '', (string) ($data['zip'] ?? '')),
+            'preferred_format' => 'json',
+            'utility_no' => $data['utility_no'] ?? '',
+            'email' => $data['email'] ?? '',
+            'first_name' => $data['first_name'] ?? '',
+            'last_name' => $data['last_name'] ?? '',
+            'mobile_telephone' => $data['mobile_telephone'] ?? '',
+        ];
+        try {
+            $resp = $this->http_post_json($url, $payload);
+        } catch (\Exception $e) {
+            return ['success' => false, 'portal_user_id' => null, 'enrollment_token' => null, 'raw_response' => ['error' => $e->getMessage()]];
+        }
+        $pu = $resp['portal_user'] ?? [];
+        return [
+            'success' => isset($pu['id'], $pu['enrollment_token']),
+            'portal_user_id' => $pu['id'] ?? null,
+            'enrollment_token' => $pu['enrollment_token'] ?? null,
+            'raw_response' => $resp,
+        ];
+    }
 }
