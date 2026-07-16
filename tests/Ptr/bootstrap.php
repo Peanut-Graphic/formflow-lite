@@ -27,8 +27,10 @@ require_once $root . '/tests/mocks/wordpress-mocks.php';
 // Connector interface + result DTOs (AccountValidationResult, EnrollmentResult…).
 require_once $root . '/includes/api/interface-api-connector.php';
 
-// PTR connector + seeder, once they exist (created during Stage 1 tasks).
+// Shared PowerPortal JSON connector + the Dominion specialization + seeder,
+// once they exist. Base first so the subclass's require is satisfied.
 foreach ([
+    '/connectors/powerportal-json/class-powerportal-json-connector.php',
     '/connectors/dominion-ptr/class-dominion-ptr-connector.php',
     '/connectors/dominion-ptr/class-dominion-ptr-seeder.php',
 ] as $relative) {
