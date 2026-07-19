@@ -84,3 +84,9 @@ jobs:
 
       - name: Dominion PTR connector tests
         run: vendor/bin/phpunit -c phpunit.ptr.xml
+
+      # Blocking. This suite was DEAD until 2026-07-19: every test in it errored
+      # on an undefined reset_mock_data(), and because no job ran it, that went
+      # unnoticed indefinitely. Running it is the only thing that keeps it honest.
+      - name: Unit tests (mock harness)
+        run: vendor/bin/phpunit --testsuite unit

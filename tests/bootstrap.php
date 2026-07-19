@@ -55,6 +55,67 @@ foreach ([
 }
 unset($__fffl_pure_class, $__fffl_path);
 
+/*
+ * Plugin constants.
+ *
+ * Normally defined in formflow-lite.php, which is only loaded when the real
+ * WordPress test suite is present. Under the mock harness the plugin classes
+ * are autoloaded directly, so the constants they reference (table names, paths)
+ * must be defined here or every DB-touching test dies on an undefined constant.
+ */
+if (!defined('FFFL_VERSION')) {
+    define('FFFL_VERSION', '0.0.0-test');
+    define('FFFL_PLUGIN_FILE', dirname(__DIR__) . '/formflow-lite.php');
+    define('FFFL_PLUGIN_DIR', dirname(__DIR__) . '/');
+    define('FFFL_PLUGIN_URL', 'https://example.test/wp-content/plugins/formflow-lite/');
+    define('FFFL_PLUGIN_BASENAME', 'formflow-lite/formflow-lite.php');
+    define('FFFL_CONNECTORS_DIR', dirname(__DIR__) . '/connectors/');
+}
+if (!defined('FFFL_TABLE_INSTANCES')) {
+    define('FFFL_TABLE_INSTANCES', 'fffl_instances');
+    define('FFFL_TABLE_SUBMISSIONS', 'fffl_submissions');
+    define('FFFL_TABLE_LOGS', 'fffl_logs');
+    define('FFFL_TABLE_RESUME_TOKENS', 'fffl_resume_tokens');
+    define('FFFL_TABLE_WEBHOOKS', 'fffl_webhooks');
+    define('FFFL_TABLE_API_USAGE', 'fffl_api_usage');
+}
+
+/*
+ * Autoload the plugin's own FFFL\ classes.
+ *
+ * The plugin registers this in formflow-lite.php, but that file is only loaded
+ * when the real WordPress test suite is available. Under the standalone mock
+ * harness it never runs, so every test touching a plugin class died with
+ * "Class FFFL\... not found". Mirrors the plugin's mapping: CamelCase ->
+ * class-kebab-case.php, sub-namespaces -> lowercase sub-directories, with the
+ * same interface- fallback.
+ */
+spl_autoload_register(function ($class) {
+    $prefix = 'FFFL\\';
+    if (strncmp($prefix, $class, strlen($prefix)) !== 0) {
+        return;
+    }
+
+    $base_dir  = dirname(__DIR__) . '/includes/';
+    $class_map = ['FFFL\\UTMTracker' => 'class-utm-tracker.php'];
+
+    if (isset($class_map[$class])) {
+        $mapped = $base_dir . $class_map[$class];
+        if (file_exists($mapped)) { require_once $mapped; }
+        return;
+    }
+
+    $parts      = explode('\\', substr($class, strlen($prefix)));
+    $class_name = array_pop($parts);
+    $kebab      = strtolower(preg_replace('/([a-z])([A-Z])/', '$1-$2', $class_name));
+    $sub_dir    = $parts ? strtolower(implode('/', $parts)) . '/' : '';
+
+    foreach (["class-{$kebab}.php", "interface-{$kebab}.php", "trait-{$kebab}.php"] as $candidate) {
+        $file = $base_dir . $sub_dir . $candidate;
+        if (file_exists($file)) { require_once $file; return; }
+    }
+});
+
 /**
  * Base test case class for FormFlow Lite.
  */

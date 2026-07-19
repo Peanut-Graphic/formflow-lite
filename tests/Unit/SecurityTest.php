@@ -65,8 +65,20 @@ class SecurityTest extends TestCase
 
         $result = Security::sanitize_form_data($input);
 
-        $this->assertStringNotContainsString('<script>', $result['name']);
-        $this->assertStringNotContainsString('alert', $result['name']);
+        // What matters is that no executable MARKUP survives. Sanitization
+        // strips tags and escapes the remainder, so the inner text "alert(...)"
+        // legitimately survives as inert, escaped characters — real WordPress
+        // sanitize_text_field() behaves identically.
+        //
+        // The old second assertion required the literal word 'alert' to be
+        // absent, which no standard sanitizer does; satisfying it would mean
+        // blocklisting words instead of escaping, which is strictly weaker.
+        $this->assertStringNotContainsString('<script', $result['name']);
+        $this->assertStringNotContainsString('</script', $result['name']);
+        $this->assertStringNotContainsString('<', $result['name']);
+        $this->assertStringNotContainsString('>', $result['name']);
+        $this->assertStringNotContainsString('"', $result['name'], 'quotes must be escaped, not raw');
+        $this->assertStringContainsString('John', $result['name'], 'legitimate content must survive');
     }
 
     // =========================================================================
@@ -401,7 +413,13 @@ class SecurityTest extends TestCase
 
         $ip = Security::get_client_ip();
 
-        $this->assertEquals('10.0.0.1', $ip);
+        // HARDENED: X-Forwarded-For is only honoured when the request actually
+        // arrived from a configured trusted proxy. REMOTE_ADDR here is not one,
+        // so the header is ignored and the real peer wins. This previously
+        // asserted '10.0.0.1' — i.e. that a client-supplied header is trusted —
+        // which is precisely the spoofable behaviour the fleet-wide clientIp
+        // hardening removed. Satisfying that assertion would reintroduce it.
+        $this->assertEquals('127.0.0.1', $ip);
     }
 
     public function testGetClientIpFromCloudflare(): void
@@ -412,7 +430,9 @@ class SecurityTest extends TestCase
 
         $ip = Security::get_client_ip();
 
-        $this->assertEquals('203.0.113.1', $ip);
+        // HARDENED: same rule for CF-Connecting-IP — honoured only behind a
+        // trusted proxy, ignored otherwise.
+        $this->assertEquals('127.0.0.1', $ip);
 
         // Clean up
         unset($_SERVER['HTTP_CF_CONNECTING_IP']);
