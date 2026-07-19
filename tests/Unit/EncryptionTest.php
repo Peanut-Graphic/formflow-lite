@@ -307,8 +307,12 @@ class EncryptionTest extends TestCase
     {
         $result = Encryption::mask('1234', 0, 4);
 
-        // When string is same length as visible chars, show all as masked
-        $this->assertEquals('1234', $result);
+        // When the string is no longer than the visible windows it is masked
+        // ENTIRELY — failing toward less disclosure. (This assertion previously
+        // expected the raw value '1234'; it contradicted the comment directly
+        // above it, and had never run. "Fixing" the code to satisfy it would
+        // have made mask() return short secrets in full.)
+        $this->assertEquals('****', $result);
     }
 
     public function testMaskVeryShortString(): void
@@ -337,7 +341,7 @@ class EncryptionTest extends TestCase
     {
         $result = Encryption::mask('john.doe@example.com', 3, 4);
 
-        $this->assertEquals('joh*************\.com', $result);
+        $this->assertEquals('joh*************.com', $result);
     }
 
     public function testMaskCreditCardStyle(): void
