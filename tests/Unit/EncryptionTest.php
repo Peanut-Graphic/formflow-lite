@@ -303,6 +303,24 @@ class EncryptionTest extends TestCase
         $this->assertEquals('12******90', $result);
     }
 
+    /**
+     * Guards the formflow-core migration: a ciphertext blob produced by the
+     * PRE-EXTRACTION implementation. Round-tripping the new code against itself
+     * would pass even if key derivation had drifted — while every already-stored
+     * record became silently unreadable in production. This decrypts a real
+     * legacy blob, so drift fails loudly in CI instead.
+     */
+    public function testDecryptsCiphertextWrittenBeforeTheExtraction(): void
+    {
+        $stored = 'AgICAgICAgICAgICAgICAh3ae/TO1m5WVgsu3oJaR7rvwlXc4/+6mE9u0CH2ExDz';
+
+        $this->assertEquals(
+            'stored-secret-value',
+            $this->encryption->decrypt($stored),
+            'Records written before the formflow-core extraction must still decrypt.'
+        );
+    }
+
     public function testMaskShortString(): void
     {
         $result = Encryption::mask('1234', 0, 4);
