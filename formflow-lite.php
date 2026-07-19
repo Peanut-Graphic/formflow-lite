@@ -27,6 +27,56 @@ define('FFFL_PLUGIN_BASENAME', plugin_basename(__FILE__));
 define('FFFL_PLUGIN_FILE', __FILE__);
 define('FFFL_CONNECTORS_DIR', FFFL_PLUGIN_DIR . 'connectors/');
 
+// Ed25519 public key that Peanut release packages are signed with (the key the
+// license server's signing pipeline publishes manifests against).
+define('FFFL_SIGNING_PUBKEY', 'NtHnWTBLVzCBKMAq9CO8LHDSD9ZfpGV0UloQdgToIwM=');
+
+// Composer autoload — bundles peanut/formflow-core, which carries the shared
+// signed-update verifier. Guarded so a missing vendor/ degrades to an admin
+// notice instead of a fatal.
+if (file_exists(FFFL_PLUGIN_DIR . 'vendor/autoload.php')) {
+    require_once FFFL_PLUGIN_DIR . 'vendor/autoload.php';
+}
+
+/**
+ * Refuse to install an update package that is not cryptographically ours.
+ *
+ * Lite has no updater of its own — packages are handed to it by the
+ * peanutgraphic.com license-server mu-plugin — so before this gate it installed
+ * whatever it was given on transport trust alone. As the free tier it is also
+ * the WIDEST install base in the fleet, which made it the softest supply-chain
+ * target we had (2026-07 ecosystem audit, finding L1).
+ *
+ * The gate downloads the package, fetches its `.manifest.json` sidecar, and
+ * verifies sha256 + a detached Ed25519 signature before WordPress installs
+ * anything. It is FAIL-CLOSED: an unsigned or unverifiable package is refused.
+ *
+ * NOTE: every formflow-lite release from here on must be published via
+ * Peanut-meta/scripts/publish-plugin.sh, which signs and ships the manifest.
+ * An unsigned release will be correctly refused by every install running this.
+ */
+function fffl_register_update_gate(): void {
+    if (!class_exists('\Peanut\FormCore\Update\SignedUpdateGate')) {
+        add_action('admin_notices', function () {
+            if (!current_user_can('update_plugins')) {
+                return;
+            }
+            echo '<div class="notice notice-error"><p><strong>FormFlow Lite:</strong> '
+                . esc_html__('update signature verification is unavailable (formflow-core missing from vendor/). Updates are NOT being verified — reinstall from an official release package.', 'formflow-lite')
+                . '</p></div>';
+        });
+        return;
+    }
+
+    (new \Peanut\FormCore\Update\SignedUpdateGate(
+        FFFL_PLUGIN_BASENAME,
+        ['peanutgraphic.com', 'github.com'],
+        FFFL_SIGNING_PUBKEY,
+        'formflow-lite'
+    ))->register();
+}
+add_action('plugins_loaded', 'fffl_register_update_gate', 1);
+
 // Database table names (without prefix) - Core tables only
 define('FFFL_TABLE_INSTANCES', 'fffl_instances');
 define('FFFL_TABLE_SUBMISSIONS', 'fffl_submissions');
