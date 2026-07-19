@@ -7,9 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **The Dominion PTR connector has moved to FormFlow Pro.** Removed `connectors/dominion-ptr/`, its `tests/Ptr/` suite, `phpunit.ptr.xml`, the PTR step in the blocking CI job, and the four PTR docs.
+
+  **Why:** dominionenergyptr.com runs FormFlow **Pro**, but this connector only ever shipped in **Lite** — the connector and the live site were in different plugins, so nothing Pro shipped could serve Dominion. Dominion now has exactly one home: `Peanut-Graphic/formflow` PRs #59 (Stage 1 port) and #60 (Stage 2 + the shared `powerportal-json` base).
+
+  **Nothing was live on this code path.** The Dominion site runs Pro's generic builder form; this connector served no production traffic. The Stage 1 entry below is left in place as the historical record, and everything removed is recoverable from git history (`c10d547`) and the closed PR #24 branch.
+
+  `ApiClient::is_safe_outbound_url()` is **kept** — it is used by the IntelliSource XML connector and pinned by `tests/Regression/IntelliSourceSsrfAndEmbedCorsTest`. The Energy Wise (Pepco/Delmarva) XML connector is untouched.
+
 ### Added
 
-- **Dominion Peak Time Rebates enrollment — Stage 1.** New `dominion-ptr` connector speaking Dominion's IntelliSource JSON API (`prospect/validate`, `portal_user_emails`) with live account validation, plus a `dominion_ptr` enrollment instance, a reduced PTR flow (`enrollment_steps()` omits the device and scheduling steps), a test-mode enrollment stub for an end-to-end demo, and dataLayer conversion config on the instance. Live enrollment (`prospect/enroll`) and the customer-portal hand-off are Stage 2, gated on IntelliSource API credentials from the vendor. A dedicated WordPress-free test suite (`phpunit.ptr.xml`, `tests/Ptr/`) covers the connector logic and is wired into the blocking CI job. The one required GTM container change is documented in `docs/superpowers/ptr-gtm-trigger.md`; the Stage 1 manual demo path is in `docs/superpowers/ptr-stage1-demo.md`. The existing IntelliSource (XML) connector serving the Energy Wise programs is untouched.
+- **Dominion Peak Time Rebates enrollment — Stage 1.** *(Historical — this work now lives in FormFlow Pro; see Removed above.)* New `dominion-ptr` connector speaking Dominion's IntelliSource JSON API (`prospect/validate`, `portal_user_emails`) with live account validation, plus a `dominion_ptr` enrollment instance, a reduced PTR flow (`enrollment_steps()` omits the device and scheduling steps), a test-mode enrollment stub for an end-to-end demo, and dataLayer conversion config on the instance. Live enrollment (`prospect/enroll`) and the customer-portal hand-off are Stage 2, gated on IntelliSource API credentials from the vendor. A dedicated WordPress-free test suite (`phpunit.ptr.xml`, `tests/Ptr/`) covers the connector logic and is wired into the blocking CI job. The one required GTM container change is documented in `docs/superpowers/ptr-gtm-trigger.md`; the Stage 1 manual demo path is in `docs/superpowers/ptr-stage1-demo.md`. The existing IntelliSource (XML) connector serving the Energy Wise programs is untouched.
 
 ## [3.2.24] - 2026-07-14
 
