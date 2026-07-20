@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **A vendor-less install no longer fatals on the submission path — it refuses to boot instead.** Adopting the shared `Peanut\FormCore\Crypto\Encryptor` (#26/#28) gave `FFFL\Encryption` an external dependency, but `formflow-lite.php` guarded only the `require_once` of `vendor/autoload.php` and then kept loading. With `vendor/` missing, the first `new Encryption()` — reached from `Database`, `Public`, `Diagnostics`, the queue manager and the embed handler, i.e. any form save or submission — threw an uncaught `Error: Class "Peanut\FormCore\Crypto\Encryptor" not found`. There was a `class_exists` guard for the update gate one function below, but none for the encryptor.
+
+  `fffl_init()` now fails closed with an actionable admin notice (mirroring FormFlow Pro, which already aborts this way), and `Encryption::__construct()` throws an explicit `RuntimeException` naming the missing package and the fix, so any path that runs outside the boot gate (direct include, WP-CLI, activation ordering) still fails comprehensibly.
+
+  **Deliberately not a graceful degradation:** continuing without the encryptor would write `api_password` and submission payloads to the database in **plaintext**, which is strictly worse than not running. `EncryptionVendorGuardTest` pins that — it asserts the failure *and* that it is never a silent fallback, running in a subprocess with no autoloader since the class cannot be un-declared in-process.
+
+  Only affects hand-built or dev-cloned installs; `publish-plugin.sh` always ships `vendor/`.
+
 ### Removed
 
 - **The Dominion PTR connector has moved to FormFlow Pro.** Removed `connectors/dominion-ptr/`, its `tests/Ptr/` suite, `phpunit.ptr.xml`, the PTR step in the blocking CI job, and the four PTR docs.

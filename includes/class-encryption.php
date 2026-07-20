@@ -24,8 +24,24 @@ class Encryption {
 
     /**
      * Constructor
+     *
+     * The bootstrap in formflow-lite.php refuses to initialise the plugin when
+     * the shared Encryptor is unavailable, so reaching this state means some
+     * path ran outside that gate (a direct include, WP-CLI, an activation
+     * ordering quirk). Fail loudly and specifically rather than with PHP's
+     * opaque "Class not found" — and never silently, because the alternative
+     * to encrypting is writing secrets to the database in plaintext.
      */
     public function __construct() {
+        if (!class_exists('\Peanut\FormCore\Crypto\Encryptor')) {
+            throw new \RuntimeException(
+                'FormFlow Lite: peanut/formflow-core is missing from vendor/, so data-at-rest '
+                . 'encryption is unavailable. Run `composer install --no-dev` in the plugin '
+                . 'directory or reinstall from an official release package. Refusing to '
+                . 'continue rather than store sensitive data unencrypted.'
+            );
+        }
+
         $this->key       = $this->get_encryption_key();
         $this->encryptor = new \Peanut\FormCore\Crypto\Encryptor($this->key);
     }
