@@ -214,6 +214,28 @@ function fffl_init() {
         return;
     }
 
+    // Data-at-rest encryption now delegates to peanut/formflow-core's Encryptor
+    // (see FFFL\Encryption). If vendor/ is missing, that class does not exist
+    // and every path that stores a secret would fatal — Database, Public,
+    // Diagnostics, the queue and the embed handler all construct Encryption.
+    //
+    // FAIL CLOSED, and deliberately do NOT "gracefully degrade": running
+    // without the encryptor would write api_password and submission payloads
+    // to the database in PLAINTEXT, which is far worse than not running. So we
+    // refuse to boot and say why. Mirrors FormFlow Pro, which aborts the same
+    // way on a missing vendor/.
+    if (!class_exists('\Peanut\FormCore\Crypto\Encryptor')) {
+        add_action('admin_notices', function() {
+            if (!current_user_can('activate_plugins')) {
+                return;
+            }
+            echo '<div class="notice notice-error"><p><strong>FormFlow Lite:</strong> ';
+            echo esc_html__('not running — the encryption library (peanut/formflow-core) is missing from vendor/. Run `composer install --no-dev` in the plugin directory, or reinstall from an official release package. Forms are disabled rather than storing data unencrypted.', 'formflow-lite');
+            echo '</p></div>';
+        });
+        return;
+    }
+
     // Load core classes
     require_once FFFL_PLUGIN_DIR . 'includes/api/interface-api-connector.php';
     require_once FFFL_PLUGIN_DIR . 'includes/api/class-connector-registry.php';
