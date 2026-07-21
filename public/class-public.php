@@ -1276,7 +1276,7 @@ class Frontend {
         $form_data = array_merge($submission['form_data'] ?? [], Security::sanitize_form_data($submitted_data));
 
         // Server-side validation for all steps before final submission
-        $validation_errors = $this->validate_all_form_steps($form_data);
+        $validation_errors = $this->validate_all_form_steps($form_data, $instance);
         if (!empty($validation_errors)) {
             $this->db->log('warning', 'Enrollment failed server-side validation', [
                 'errors' => $validation_errors,
@@ -1414,6 +1414,10 @@ class Frontend {
             $this->db->update_submission($submission['id'], [
                 'customer_name' => $customer_name,
                 'device_type' => $form_data['device_type'] ?? null,
+                // Dedicated columns, not form_data: that blob is encrypted at
+                // rest and cannot be queried for the gate's reporting.
+                'has_wifi' => $form_data['has_wifi'] ?? null,
+                'device_converted' => (int) ($form_data['device_converted'] ?? 0),
                 'form_data' => $form_data,
                 'status' => 'completed',
                 'step' => 5,
@@ -2262,11 +2266,14 @@ class Frontend {
      * @param array $form_data The complete form data
      * @return array Array of validation errors, empty if valid
      */
-    private function validate_all_form_steps(array $form_data): array {
+    private function validate_all_form_steps(array $form_data, array $instance = []): array {
         $all_errors = [];
 
         // Step 1: Device type validation
-        if (!$this->form_handler->validateStep1($form_data)) {
+        // Step 1 also carries the WiFi eligibility gate when this instance
+        // enforces it. Without the instance the gate cannot be reached at all,
+        // which is how a correct rule ends up doing nothing.
+        if (!$this->form_handler->validateStep1($form_data, fffl_requires_wifi($instance))) {
             $all_errors = array_merge($all_errors, $this->form_handler->getErrors());
         }
 
@@ -2327,6 +2334,33 @@ function fffl_get_content(array $instance, string $key, string $default = ''): s
  */
 function fffl_get_default_state(array $instance): string {
     return $instance['settings']['default_state'] ?? '';
+}
+
+/**
+ * Whether this instance enforces the WiFi eligibility gate.
+ *
+ * A Web-Programmable Thermostat cannot be installed in a home without WiFi,
+ * but only some utilities have asked us to enforce that in the form. The gate
+ * is therefore opt-in per instance and must stay inert everywhere it has not
+ * been explicitly enabled.
+ *
+ * Settings round-trip through admin forms and JSON, so a stored "1"/"yes"/"on"
+ * counts as enabled. The values deliberately excluded are the ones that are
+ * truthy in PHP but plainly mean "off" - "0", "false", "off", "no" - because
+ * reading any of those as consent would switch the gate on for a client who
+ * turned it off.
+ *
+ * @param array $instance The form instance data
+ * @return bool True when the thermostat requires a WiFi answer
+ */
+function fffl_requires_wifi(array $instance): bool {
+    $setting = $instance['settings']['require_wifi'] ?? false;
+
+    if (is_string($setting)) {
+        return in_array(strtolower(trim($setting)), ['1', 'yes', 'true', 'on'], true);
+    }
+
+    return (bool) $setting;
 }
 
 /**

@@ -161,6 +161,15 @@ class wpdb {
     public array $updates = [];
     /** @var array<int,string> raw queries asked of get_var */
     public array $get_var_queries = [];
+    /** @var array<int,string> raw queries passed to query() (ALTER TABLE etc.) */
+    public array $queries = [];
+    /**
+     * Column names (unqualified) that "exist" on their table, so
+     * INFORMATION_SCHEMA existence checks in migrations can be answered.
+     *
+     * @var string[]
+     */
+    public array $existing_columns = [];
 
     public function get_charset_collate(): string {
         return 'DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci';
@@ -186,7 +195,23 @@ class wpdb {
         if (preg_match("/SHOW TABLES LIKE '([^']+)'/i", (string) $query, $m)) {
             return in_array($m[1], $this->existing_tables, true) ? $m[1] : null;
         }
+        // Answer column-exists checks used by ALTER-based migrations:
+        // SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS ... COLUMN_NAME = 'x'
+        if (preg_match("/INFORMATION_SCHEMA\.COLUMNS/i", (string) $query)
+            && preg_match("/COLUMN_NAME = '([^']+)'/i", (string) $query, $m)
+        ) {
+            return in_array($m[1], $this->existing_columns, true) ? 1 : 0;
+        }
         return null;
+    }
+
+    /**
+     * Migrations issue raw ALTER TABLE statements through query(). Record them
+     * so tests can assert which schema changes an upgrade actually performs.
+     */
+    public function query($query) {
+        $this->queries[] = (string) $query;
+        return 1;
     }
 
     public function insert($table, $data, $format = null) {

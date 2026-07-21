@@ -60,7 +60,7 @@ class FormHandler
      * @param array $data Form data.
      * @return bool True if valid.
      */
-    public function validateStep1(array $data): bool
+    public function validateStep1(array $data, bool $require_wifi = false): bool
     {
         $this->errors = [];
 
@@ -70,6 +70,14 @@ class FormHandler
 
         if (empty($data['device_type']) || !in_array($data['device_type'], ['thermostat', 'dcu'], true)) {
             $this->errors['device_type'] = __('Please select a device type.', 'formflow-lite');
+        }
+
+        // Fails closed: only an explicit "yes" clears the gate.
+        if ($require_wifi
+            && ($data['device_type'] ?? '') === 'thermostat'
+            && ($data['has_wifi'] ?? '') !== 'yes'
+        ) {
+            $this->errors['has_wifi'] = __('Home WiFi is required for the Web-Programmable Thermostat. Please choose the Outdoor Switch instead.', 'formflow-lite');
         }
 
         return empty($this->errors);

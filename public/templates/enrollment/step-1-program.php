@@ -11,6 +11,7 @@ if (!defined('ABSPATH')) {
 
 // Import content helper function
 use function FFFL\Frontend\fffl_get_content;
+use function FFFL\Frontend\fffl_requires_wifi;
 
 // 3.2.17: pre-fill Step 1 from URL parameters. The program's intro pages
 // link people here as e.g. /md-schedule/?has_ac=yes&device_type=thermostat,
@@ -19,6 +20,12 @@ use function FFFL\Frontend\fffl_get_content;
 // unchecked, and clicking Continue trips the browser's required-field
 // validation, which looks like the page is just refreshing.
 $device_type = $form_data['device_type'] ?? '';
+
+// A Web-Programmable Thermostat cannot be installed without home WiFi. Only
+// instances that opted in ask about it; everywhere else this whole block is
+// absent and the step renders exactly as it always has.
+$requires_wifi = fffl_requires_wifi($instance);
+$has_wifi      = $form_data['has_wifi'] ?? '';
 if ($device_type === '' && isset($_GET['device_type'])) {
     $param_device = sanitize_text_field(wp_unslash($_GET['device_type']));
     if (in_array($param_device, ['thermostat', 'dcu'], true)) {
@@ -98,6 +105,73 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue', 'formflow-lit
                 </div>
             </label>
         </div>
+
+        <?php if ($requires_wifi) : ?>
+            <?php
+            $wifi_question = fffl_get_content($instance, 'wifi_question', __('Does your home have WiFi?', 'formflow-lite'));
+            $wifi_help     = fffl_get_content($instance, 'wifi_help', __('A wireless internet connection from a router in your home.', 'formflow-lite'));
+            $wifi_heading  = fffl_get_content($instance, 'wifi_callout_heading', __('Home WiFi is required for the thermostat', 'formflow-lite'));
+            $wifi_body     = fffl_get_content($instance, 'wifi_callout_body', __('The Web-Programmable Thermostat connects to your home WiFi to receive schedule changes and take part in energy-saving events. Without it, it cannot be installed.', 'formflow-lite'));
+            $wifi_reassure = fffl_get_content($instance, 'wifi_callout_reassurance', __('The Outdoor Switch gets you the same program. Same bill credits, same participation levels, same enrollment - it is simply a different device, installed outside on your AC unit instead of on your wall. No WiFi required.', 'formflow-lite'));
+            $wifi_convert  = fffl_get_content($instance, 'wifi_convert_button', __('Yes, enroll me in the Outdoor Switch program', 'formflow-lite'));
+            ?>
+            <!--
+                Shown only once the thermostat is selected. Hidden on load so
+                nobody is warned about ineligibility before they have answered.
+            -->
+            <fieldset class="ff-field ff-wifi-check" id="ff-wifi-check" hidden>
+                <legend class="ff-label">
+                    <?php echo esc_html($wifi_question); ?>
+                    <span class="ff-required">*</span>
+                </legend>
+
+                <div class="ff-wifi-options">
+                    <label class="ff-radio-option">
+                        <input type="radio" name="has_wifi" value="yes"
+                               <?php checked($has_wifi, 'yes'); ?>>
+                        <span class="ff-radio-label"><?php esc_html_e('Yes', 'formflow-lite'); ?></span>
+                    </label>
+
+                    <label class="ff-radio-option">
+                        <input type="radio" name="has_wifi" value="no"
+                               <?php checked($has_wifi, 'no'); ?>>
+                        <span class="ff-radio-label"><?php esc_html_e('No', 'formflow-lite'); ?></span>
+                    </label>
+                </div>
+
+                <p class="ff-field-help" id="ff-wifi-help"><?php echo esc_html($wifi_help); ?></p>
+            </fieldset>
+
+            <!--
+                role="alert" so the callout is announced rather than silently
+                appearing. Meaning must not depend on the red treatment alone:
+                the icon and the heading state the problem in words, per WCAG AA.
+            -->
+            <div class="ff-wifi-callout" id="ff-wifi-callout" role="alert" hidden>
+                <div class="ff-wifi-callout-icon" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                        <path d="M12 9v4M12 17h.01"/>
+                    </svg>
+                </div>
+
+                <div class="ff-wifi-callout-content">
+                    <h3 class="ff-wifi-callout-heading"><?php echo esc_html($wifi_heading); ?></h3>
+                    <p><?php echo esc_html($wifi_body); ?></p>
+                    <p class="ff-wifi-callout-reassurance"><?php echo esc_html($wifi_reassure); ?></p>
+
+                    <div class="ff-wifi-callout-actions">
+                        <button type="button" class="ff-btn ff-btn-primary ff-convert-to-dcu">
+                            <?php echo esc_html($wifi_convert); ?>
+                            <span class="ff-btn-arrow">&rarr;</span>
+                        </button>
+                        <a href="#" class="ff-device-info" data-popup="dcu">
+                            <?php esc_html_e("What's the Outdoor Switch?", 'formflow-lite'); ?>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        <?php endif; ?>
 
         <div class="ff-step-actions">
             <button type="submit" class="ff-btn ff-btn-primary ff-btn-next">

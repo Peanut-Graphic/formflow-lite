@@ -5,6 +5,25 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-07-21
+
+### Added
+
+- **WiFi eligibility gate for the Web-Programmable Thermostat.** A thermostat cannot be installed in a home without WiFi, but the enrollment form never asked, so those enrollments completed, got scheduled, and a technician was dispatched to a home where the install could not succeed. Found in testing on the Pepco/Delmarva forms before launch. Step 1 now asks "Does your home have WiFi?" when the thermostat is selected; answering **No** opens a callout offering one-click conversion to the Outdoor Switch program.
+- **Per-instance opt-in** (`settings.require_wifi`, "Require WiFi for thermostat" under Eligibility). **Default off.** FormFlow serves several Itron utilities from one enrollment flow and only PHI asked for this, so every other instance renders and behaves exactly as before. Stored `"0"`, `"false"`, `"off"` and `"no"` are read as OFF despite being truthy strings in PHP.
+- **Server-side enforcement.** `FormHandler::validateStep1()` takes an opt-in `$require_wifi` flag and rejects thermostat + no/missing WiFi, and the final-submission path passes it. The client-side gate alone is bypassable with a hand-crafted POST, which would defeat the entire purpose. Fails closed: only an explicit `"yes"` clears it.
+- **`has_wifi` and `device_converted` columns on submissions**, in both the `CREATE TABLE` and a guarded, idempotent 3.3.0 migration. These need real columns because `form_data` is encrypted at rest and cannot be queried. `has_wifi` is nullable on purpose: NULL means "never asked", which keeps switch-first and pre-3.3.0 enrollments distinguishable from an actual answer.
+- **64 tests.** Kept in step with the FormFlow Pro implementation so the two copies do not drift.
+
+### Changed
+
+- Test harness: the mock `wpdb` now records the last `insert()`/`update()` payload, and `is_email()` is mocked. Both are additive and available to any test.
+
+### Notes
+
+- **The "same bill credits" line in the callout is not verified.** Participation-level parity *is* (Step 2 renders the same 50/75/100 cycling options for both devices), but no incentive figures exist anywhere in this codebase; that lives in the utility's tariff. It is a financial claim in a regulated enrollment form and needs written client confirmation. All callout copy is instance-editable content, so softening it is a settings change rather than a release.
+- Reporting figures (asked / no-WiFi / converted) ship in **Pro only** - Lite has no report generator.
+
 ## [Unreleased]
 
 ### Fixed

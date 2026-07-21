@@ -962,9 +962,12 @@ class Admin {
             }
         }
 
-        // Merge with existing settings and add demo_mode
+        // Merge with existing settings and add the boolean flags
         $settings = array_merge($existing_settings, $new_settings, [
-            'demo_mode' => isset($_POST['demo_mode']) && $_POST['demo_mode'] !== '' && $_POST['demo_mode'] !== '0'
+            'demo_mode' => isset($_POST['demo_mode']) && $_POST['demo_mode'] !== '' && $_POST['demo_mode'] !== '0',
+            // WiFi eligibility gate. Opt-in per instance: a utility that never
+            // asked for it must never have its live form change.
+            'require_wifi' => !empty($_POST['require_wifi']) && $_POST['require_wifi'] !== '0'
         ]);
 
         $data = [

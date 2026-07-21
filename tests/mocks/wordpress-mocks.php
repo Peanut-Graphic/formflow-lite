@@ -459,12 +459,18 @@ if (!class_exists('wpdb')) {
 
         public function query($query) { $this->queries[] = $query; return $this->result('query', 1); }
 
+        /** Last payload handed to insert()/update(), so tests can assert on writes. */
+        public $last_insert_data = null;
+        public $last_update_data = null;
+
         public function insert($table, $data, $format = null) {
             global $mock_wpdb_insert_id;
+            $this->last_insert_data = $data;
             $this->insert_id = (int) ($mock_wpdb_insert_id ?: 1);
             return $this->result('insert', 1);
         }
         public function update($table, $data, $where, $format = null, $where_format = null) {
+            $this->last_update_data = $data;
             return $this->result('update', 1);
         }
         public function delete($table, $where, $where_format = null) {
@@ -483,6 +489,12 @@ if (!defined('ARRAY_N')) { define('ARRAY_N', 'ARRAY_N'); }
 // Make $wpdb available globally, as WordPress does.
 if (!isset($GLOBALS['wpdb']) || !$GLOBALS['wpdb'] instanceof wpdb) {
     $GLOBALS['wpdb'] = new wpdb();
+}
+
+if (!function_exists('is_email')) {
+    function is_email($email) {
+        return filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : false;
+    }
 }
 
 if (!function_exists('wp_nonce_field')) {
