@@ -393,22 +393,6 @@ $wizard_steps = [
                                     </div>
                                 </div>
 
-                                <!-- Eligibility Pod -->
-                                <div class="ff-pod">
-                                    <div class="ff-pod-header">
-                                        <h3><span class="dashicons dashicons-shield"></span><?php esc_html_e('Eligibility', 'formflow-lite'); ?></h3>
-                                    </div>
-                                    <div class="ff-pod-body">
-                                        <label class="ff-checkbox-row">
-                                            <input type="checkbox" name="require_wifi" value="1" <?php checked($instance['settings']['require_wifi'] ?? false); ?>>
-                                            <span><strong><?php esc_html_e('Require WiFi for thermostat', 'formflow-lite'); ?></strong></span>
-                                        </label>
-                                        <p class="ff-field-help">
-                                            <?php esc_html_e('Asks customers who choose the Web-Programmable Thermostat whether their home has WiFi. Answering "No" blocks the thermostat and offers to enroll them in the Outdoor Switch program instead. Leave off for utilities that have not requested this check.', 'formflow-lite'); ?>
-                                        </p>
-                                    </div>
-                                </div>
-
                                 <!-- IntelliSource Device & Location Codes Pod -->
                                 <?php
                                 $cfg_dd_thermostat = $instance['settings']['device_code_thermostat'] ?? '03';
@@ -566,6 +550,22 @@ $wizard_steps = [
                                     </div>
                                 </div>
                             </div>
+                                <!-- Eligibility Pod -->
+                                <div class="ff-pod">
+                                    <div class="ff-pod-header">
+                                        <h3><span class="dashicons dashicons-shield"></span><?php esc_html_e('Eligibility', 'formflow-lite'); ?></h3>
+                                    </div>
+                                    <div class="ff-pod-body">
+                                        <label class="ff-checkbox-row">
+                                            <input type="checkbox" name="require_wifi" value="1" <?php checked($instance['settings']['require_wifi'] ?? false); ?>>
+                                            <span><strong><?php esc_html_e('Require WiFi for thermostat', 'formflow-lite'); ?></strong></span>
+                                        </label>
+                                        <p class="ff-field-help">
+                                            <?php esc_html_e('Asks customers who choose the Web-Programmable Thermostat whether their home has WiFi. Answering "No" blocks the thermostat and offers to enroll them in the Outdoor Switch program instead. Leave off for utilities that have not requested this check.', 'formflow-lite'); ?>
+                                        </p>
+                                    </div>
+                                </div>
+
                         </div>
                     </div>
 

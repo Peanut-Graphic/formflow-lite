@@ -255,6 +255,10 @@
                     is_active: $form.find('input[name="is_active"]').is(':checked') ? 1 : 0,
                     test_mode: $form.find('input[name="test_mode"]').is(':checked') ? 1 : 0,
                     demo_mode: $form.find('input[name="demo_mode"]').is(':checked') ? 1 : 0,
+                    // Every top-level flag MUST be listed here. This payload is a
+                    // whitelist, so a checkbox missing from it saves silently as
+                    // "off" no matter what the admin ticked (3.3.1: require_wifi).
+                    require_wifi: $form.find('input[name="require_wifi"]').is(':checked') ? 1 : 0,
                     settings: JSON.stringify(settings)
                 },
                 success: function(response) {
