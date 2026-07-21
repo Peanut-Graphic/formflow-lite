@@ -151,6 +151,11 @@ class Plugin {
         add_action('wp_enqueue_scripts', [$this->public, 'enqueue_styles']);
         add_action('wp_enqueue_scripts', [$this->public, 'enqueue_scripts']);
 
+        // Late priority: run AFTER any "strip query strings" optimisation so
+        // our own assets keep their cache-buster. See keep_our_cache_buster().
+        add_filter('script_loader_src', [$this->public, 'keep_our_cache_buster'], 9999, 2);
+        add_filter('style_loader_src', [$this->public, 'keep_our_cache_buster'], 9999, 2);
+
         // Public AJAX handlers (both logged in and not logged in)
         $ajax_actions = [
             'fffl_load_step',

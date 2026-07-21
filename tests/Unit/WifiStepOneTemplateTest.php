@@ -118,15 +118,36 @@ final class WifiStepOneTemplateTest extends TestCase
         );
     }
 
+    /**
+     * The requirement is unchanged — nobody should see the ineligibility
+     * warning before answering — but as of the fail-visible work it is
+     * guaranteed by CSS rather than a `hidden` attribute, so that the callout
+     * can be revealed by :checked without JavaScript. Assert the guarantee
+     * where it now lives.
+     */
     public function test_callout_is_hidden_until_the_customer_answers_no(): void
     {
         $html = $this->render(['require_wifi' => true]);
 
-        $this->assertMatchesRegularExpression(
-            '/id=["\']ff-wifi-callout["\'][^>]*hidden/i',
+        $this->assertStringContainsString(
+            'id="ff-wifi-callout"',
             $html,
-            'The callout is not hidden on load, so everyone sees the ineligibility '
+            'The callout must still be rendered so CSS can reveal it.'
+        );
+
+        $css = (string) file_get_contents(FFFL_PLUGIN_DIR . 'public/assets/css/forms.css');
+
+        $this->assertMatchesRegularExpression(
+            '/#ff-wifi-callout\s*\{[^}]*display:\s*none/s',
+            $css,
+            'The callout is not hidden by default, so everyone sees the ineligibility '
             . 'warning before answering.'
+        );
+
+        $this->assertMatchesRegularExpression(
+            '/input\[name="has_wifi"\]\[value="no"\]:checked/',
+            $css,
+            'Nothing reveals the callout when "No" is chosen.'
         );
     }
 
