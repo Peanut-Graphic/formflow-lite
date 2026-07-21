@@ -27,9 +27,18 @@ $alt_phone_type = $form_data['alt_phone_type'] ?? 'home';
 $street = $form_data['street'] ?? ($form_data['validated_street'] ?? '');
 $street2 = $form_data['street2'] ?? '';
 $city = $form_data['city'] ?? ($form_data['validated_city'] ?? '');
-// Use ?: (not ??) so an empty string (e.g. address validation returned no
-// state) falls through to the configured default_state instead of shadowing it.
-$state = ($form_data['state'] ?? '') ?: (($form_data['validated_state'] ?? '') ?: fffl_get_default_state($instance));
+// Precedence: what the customer picked > the instance's configured Default
+// State > whatever address validation returned.
+//
+// The configured default outranks validated data deliberately. These forms are
+// programme-specific - a DC instance serves a DC-only programme - so what an
+// operator sets in the backend is the authority for what the form shows.
+// Previously a non-empty validated_state shadowed the setting, so a DC form
+// defaulted to MD whenever validation (including test/demo data) said MD.
+// Customers can still change the field; this only decides the default.
+//
+// ?: throughout (not ??) so empty strings fall through rather than shadow.
+$state = ($form_data['state'] ?? '') ?: (fffl_get_default_state($instance) ?: ($form_data['validated_state'] ?? ''));
 
 // DC is a federal district, not a state: relabel the field when DC is selected.
 $state_label_text = ($state === 'DC')
