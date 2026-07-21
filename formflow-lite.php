@@ -3,7 +3,7 @@
  * Plugin Name: FormFlow Lite
  * Plugin URI: https://formflow.dev
  * Description: Lightweight API-integrated enrollment and scheduling forms for utility demand response programs
- * Version: 3.3.1
+ * Version: 3.3.2
  * Author: Peanut Graphic
  * Author URI: https://peanutgraphic.com
  * Text Domain: formflow-lite
@@ -20,7 +20,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Plugin constants
-define('FFFL_VERSION', '3.3.1');
+define('FFFL_VERSION', '3.3.2');
 define('FFFL_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FFFL_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('FFFL_PLUGIN_BASENAME', plugin_basename(__FILE__));
