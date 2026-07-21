@@ -41,6 +41,56 @@ class Activator {
         $current_version = get_option('fffl_version', '1.0.0');
 
         // Migration for v3.0.0: Initial lite version - no migrations needed yet
+
+        // Migration for v3.3.0: WiFi eligibility gate columns on submissions.
+        //
+        // A Web-Programmable Thermostat cannot be installed without home WiFi,
+        // so instances may now gate that device behind a WiFi question and
+        // offer conversion to the Outdoor Switch instead. Both facts need to be
+        // reportable, and `form_data` is encrypted at rest - an encrypted blob
+        // cannot be queried - so they need real columns.
+        //
+        // has_wifi is nullable on purpose: NULL means "never asked", which is
+        // how switch-first and pre-3.3.0 enrollments stay distinguishable from
+        // an actual answer. device_converted defaults to 0 so existing rows
+        // read as "not converted" rather than NULL and do not skew the numbers.
+        if (version_compare($current_version, '3.3.0', '<')) {
+            $table = $wpdb->prefix . FFFL_TABLE_SUBMISSIONS;
+
+            $has_wifi_exists = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*)
+                     FROM INFORMATION_SCHEMA.COLUMNS
+                     WHERE TABLE_SCHEMA = %s
+                     AND TABLE_NAME = %s
+                     AND COLUMN_NAME = 'has_wifi'",
+                    $wpdb->dbname,
+                    $table
+                )
+            );
+
+            if (!$has_wifi_exists) {
+                // Table name comes from the plugin constant, column and type
+                // are hardcoded literals - safe to interpolate.
+                $wpdb->query("ALTER TABLE {$table} ADD COLUMN has_wifi ENUM('yes','no') DEFAULT NULL AFTER device_type");
+            }
+
+            $device_converted_exists = $wpdb->get_var(
+                $wpdb->prepare(
+                    "SELECT COUNT(*)
+                     FROM INFORMATION_SCHEMA.COLUMNS
+                     WHERE TABLE_SCHEMA = %s
+                     AND TABLE_NAME = %s
+                     AND COLUMN_NAME = 'device_converted'",
+                    $wpdb->dbname,
+                    $table
+                )
+            );
+
+            if (!$device_converted_exists) {
+                $wpdb->query("ALTER TABLE {$table} ADD COLUMN device_converted TINYINT(1) NOT NULL DEFAULT 0 AFTER has_wifi");
+            }
+        }
     }
 
     /**
@@ -159,6 +209,8 @@ class Activator {
             account_number VARCHAR(50),
             customer_name VARCHAR(255),
             device_type ENUM('thermostat','dcu'),
+            has_wifi ENUM('yes','no') DEFAULT NULL,
+            device_converted TINYINT(1) NOT NULL DEFAULT 0,
             form_data MEDIUMBLOB,
             api_response MEDIUMBLOB,
             status ENUM('in_progress','completed','failed','abandoned') DEFAULT 'in_progress',
