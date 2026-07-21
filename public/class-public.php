@@ -51,6 +51,40 @@ class Frontend {
     }
 
     /**
+     * Restore our own cache-busting version string.
+     *
+     * Live sites commonly run a "remove query strings from static resources"
+     * optimisation, which strips ?ver= from every asset URL. Observed on
+     * energywiserewards.pepco.com: enrollment.js served with no version at all.
+     *
+     * That is quietly dangerous for this plugin. A returning visitor can be
+     * served brand-new markup with a browser-cached OLD enrollment.js, and any
+     * behaviour we ship in JS simply never runs for them. We only re-add the
+     * version to OUR handles, at a late priority so we run after whatever
+     * stripped it; every other plugin's assets are left exactly as the site
+     * intended.
+     *
+     * @param string $src    Script source URL.
+     * @param string $handle Registered handle.
+     * @return string
+     */
+    public function keep_our_cache_buster(string $src, string $handle): string {
+        if (strpos($handle, 'ff-') !== 0) {
+            return $src;
+        }
+
+        if (strpos($src, FFFL_PLUGIN_URL) !== 0) {
+            return $src;
+        }
+
+        if (strpos($src, 'ver=') !== false) {
+            return $src;
+        }
+
+        return add_query_arg('ver', FFFL_VERSION, $src);
+    }
+
+    /**
      * Enqueue frontend scripts
      */
     public function enqueue_scripts(): void {

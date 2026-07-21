@@ -2217,6 +2217,31 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none;
 }
 
+/*
+   The callout is revealed by CSS on the checked radio, NOT by JavaScript.
+
+   Some sites strip the ?ver= cache-buster from static assets, so a returning
+   visitor can be served brand-new markup with a stale cached enrollment.js.
+   Driving this from CSS means the "no WiFi" message still appears for that
+   visitor; JS stays a pure enhancement (the one-click conversion button).
+
+   Default hidden so nobody is warned before they have answered.
+*/
+#ff-wifi-callout {
+    display: none;
+}
+
+.ff-step:has(input[name="has_wifi"][value="no"]:checked) #ff-wifi-callout,
+.ff-step-form:has(input[name="has_wifi"][value="no"]:checked) #ff-wifi-callout {
+    display: flex;
+}
+
+/* Selecting the switch takes the question away even without JS. */
+.ff-step:has(input[name="device_type"][value="dcu"]:checked) #ff-wifi-check,
+.ff-step-form:has(input[name="device_type"][value="dcu"]:checked) #ff-wifi-check {
+    display: none;
+}
+
 .ff-wifi-options {
     display: flex;
     gap: 12px;

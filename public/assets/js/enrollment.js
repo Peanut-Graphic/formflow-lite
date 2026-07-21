@@ -246,13 +246,15 @@
             return; // Instance has not enabled the gate.
         }
 
+        // The question ships VISIBLE and CSS handles the callout, so stale JS
+        // degrades to a redundant question rather than an invisible one. Here
+        // we only tidy up: hide it for switch-choosers and clear a stale answer.
         if (deviceType === 'thermostat') {
-            $check.prop('hidden', false);
+            $check.show();
             return;
         }
 
-        $check.prop('hidden', true);
-        $('#ff-wifi-callout').prop('hidden', true);
+        $check.hide();
         $('input[name="has_wifi"]').prop('checked', false);
     }
 
@@ -260,7 +262,9 @@
      * Reveal the conversion offer when the customer says they have no WiFi.
      */
     function handleWifiAnswer() {
-        $('#ff-wifi-callout').prop('hidden', $(this).val() !== 'no');
+        // CSS already reveals the callout via :checked; this keeps parity for
+        // browsers without :has() support.
+        $('#ff-wifi-callout').toggle($(this).val() === 'no');
     }
 
     /**
@@ -283,8 +287,8 @@
         // switch outright. Without it the feature cannot be measured.
         FFEnrollment.formData.device_converted = 1;
 
-        $('#ff-wifi-callout').prop('hidden', true);
-        $('#ff-wifi-check').prop('hidden', true);
+        $('#ff-wifi-callout').hide();
+        $('#ff-wifi-check').hide();
 
         goToStep(2);
     }
@@ -333,7 +337,7 @@
             if (hasWifi !== 'yes') {
                 // Do not advance. The callout is already open and carries the
                 // offer to switch, which is where this customer should go.
-                $('#ff-wifi-callout').prop('hidden', false);
+                $('#ff-wifi-callout').show();
                 return;
             }
         }

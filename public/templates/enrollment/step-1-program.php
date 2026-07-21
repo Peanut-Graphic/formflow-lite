@@ -116,10 +116,13 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue', 'formflow-lit
             $wifi_convert  = fffl_get_content($instance, 'wifi_convert_button', __('Yes, enroll me in the Outdoor Switch program', 'formflow-lite'));
             ?>
             <!--
-                Shown only once the thermostat is selected. Hidden on load so
-                nobody is warned about ineligibility before they have answered.
+                Deliberately NOT hidden in the markup. JS hides this for
+                switch-choosers; if our JS is stale (some sites strip the ?ver=
+                cache-buster) the worst case is a redundant question rather than
+                an invisible one the customer is later rejected for not
+                answering. Fail visible.
             -->
-            <fieldset class="ff-field ff-wifi-check" id="ff-wifi-check" hidden>
+            <fieldset class="ff-field ff-wifi-check" id="ff-wifi-check">
                 <legend class="ff-label">
                     <?php echo esc_html($wifi_question); ?>
                     <span class="ff-required">*</span>
@@ -147,7 +150,7 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue', 'formflow-lit
                 appearing. Meaning must not depend on the red treatment alone:
                 the icon and the heading state the problem in words, per WCAG AA.
             -->
-            <div class="ff-wifi-callout" id="ff-wifi-callout" role="alert" hidden>
+            <div class="ff-wifi-callout" id="ff-wifi-callout" role="alert">
                 <div class="ff-wifi-callout-icon" aria-hidden="true">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
