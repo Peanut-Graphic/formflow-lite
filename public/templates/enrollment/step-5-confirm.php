@@ -163,14 +163,31 @@ if (empty($terms_content)) {
         </div>
 
         <!-- Appointment Summary -->
+        <?php
+        // A switch with no access issue skips the scheduler entirely: it installs
+        // on the outdoor unit with no appointment. Show that instead of an empty
+        // Date/Time pair, and do not link Edit back to the scheduler it bypassed.
+        $ff_scheduler_skipped = !empty($form_data['schedule_later'])
+            && empty($form_data['schedule_date'])
+            && ($form_data['device_type'] ?? '') === 'dcu';
+        ?>
         <div class="ff-review-section">
             <div class="ff-review-header">
                 <h3><?php esc_html_e('Installation Appointment', 'formflow-lite'); ?></h3>
+                <?php if (!$ff_scheduler_skipped) : ?>
                 <button type="button" class="ff-edit-link" data-goto-step="4">
                     <?php esc_html_e('Edit', 'formflow-lite'); ?>
                 </button>
+                <?php endif; ?>
             </div>
             <div class="ff-review-content">
+                <?php if ($ff_scheduler_skipped) : ?>
+                <div class="ff-review-item ff-review-item-full">
+                    <span class="ff-review-value" id="review-date">
+                        <?php esc_html_e('No installation appointment is needed — the switch installs on your outdoor unit. We will contact you if a visit is ever required.', 'formflow-lite'); ?>
+                    </span>
+                </div>
+                <?php else : ?>
                 <div class="ff-review-grid ff-review-grid-2">
                     <div class="ff-review-item">
                         <span class="ff-review-label"><?php esc_html_e('Date', 'formflow-lite'); ?></span>
@@ -181,6 +198,7 @@ if (empty($terms_content)) {
                         <span class="ff-review-value" id="review-time"><?php echo esc_html($form_data['schedule_time'] ?? ''); ?></span>
                     </div>
                 </div>
+                <?php endif; ?>
                 <?php if (!empty($form_data['special_instructions'])) : ?>
                 <div class="ff-review-item ff-review-item-full">
                     <span class="ff-review-label"><?php esc_html_e('Special Instructions', 'formflow-lite'); ?></span>
