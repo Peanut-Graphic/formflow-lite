@@ -510,8 +510,20 @@
                     FFEnrollment.formData.comverge_no = response.data.comverge_no || '';
                     FFEnrollment.formData.enrollment_completed = true;
 
-                    // Now proceed to step 4 (scheduling)
-                    goToStep(4);
+                    // Route past the scheduler for a switch with no access issue.
+                    // A switch (dcu) installs on the outdoor unit; when the tech
+                    // needs no indoor/gate access (easy_access !== 'No') there is
+                    // no appointment to book, so go straight to confirmation.
+                    // Anything else — a thermostat, or a switch WITH an access
+                    // issue — still schedules.
+                    var isSwitch = FFEnrollment.formData.device_type === 'dcu';
+                    var noAccessIssue = (FFEnrollment.formData.easy_access || 'Yes') !== 'No';
+                    if (isSwitch && noAccessIssue) {
+                        FFEnrollment.formData.schedule_later = true;
+                        goToStep(5);
+                    } else {
+                        goToStep(4);
+                    }
                 } else {
                     showAlert(response.data.message || fffl_frontend.strings.submission_error, 'error');
                 }
@@ -671,6 +683,18 @@
      */
     function handlePrevious(e) {
         e.preventDefault();
+
+        // Back from confirmation (step 5) must not drop a switch that skipped
+        // the scheduler back onto the scheduler (step 4). Mirror the skip
+        // condition from handleStep3Submit and step over it to step 3.
+        var skippedScheduler = FFEnrollment.formData.device_type === 'dcu'
+            && (FFEnrollment.formData.easy_access || 'Yes') !== 'No'
+            && FFEnrollment.formData.schedule_later;
+        if (FFEnrollment.currentStep === 5 && skippedScheduler) {
+            goToStep(3);
+            return;
+        }
+
         if (FFEnrollment.currentStep > 1) {
             goToStep(FFEnrollment.currentStep - 1);
         }
@@ -1000,6 +1024,11 @@
         var formattedDate = dateObj.toLocaleDateString('en-US', options);
         $('#ff-summary-date').text(formattedDate);
 
+        // Changing the date reloads the slots and clears the time selection, so
+        // the standalone scheduler's Confirm button must return to disabled
+        // until a new time is picked.
+        $('#ff-scheduler-step-2-form .ff-btn-next').prop('disabled', true);
+
         // Load time slots for this date
         loadTimeSlots(date);
     }
@@ -1098,6 +1127,11 @@
         $('#ff-appointment-summary').show();
         $('#ff-schedule-continue .ff-btn-text-skip').hide();
         $('#ff-schedule-continue .ff-btn-text-confirm').show();
+
+        // Standalone scheduler: its Confirm button ships disabled and the block
+        // above only toggles the enrollment-wizard button. Enable it here, or a
+        // customer can pick a date and time and never be able to confirm.
+        $('#ff-scheduler-step-2-form .ff-btn-next').prop('disabled', false);
     }
 
     /**

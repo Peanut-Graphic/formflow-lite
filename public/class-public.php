@@ -2225,6 +2225,13 @@ class Frontend {
     private function apply_scheduling_settings(array $slots, array $instance): array {
         $scheduling = $instance['settings']['scheduling'] ?? [];
 
+        // Client feedback 2026-07: Pepco/Delmarva do not offer the 5-8 PM
+        // ("ev") install window. Slots come from the IntelliSource API, which
+        // may still mark evening available, so drop it here. Scoped to PHI
+        // utilities only — every other utility keeps its evening slot.
+        $utility = (string) ($instance['utility'] ?? '');
+        $hide_evening = strpos($utility, 'pepco') === 0 || strpos($utility, 'delmarva') === 0;
+
         // Get blocked dates as array of Y-m-d strings
         $blocked_dates = [];
         if (!empty($scheduling['blocked_dates'])) {
@@ -2244,6 +2251,13 @@ class Frontend {
 
         foreach ($slots as $slot) {
             $date = $slot['date'];
+
+            // PHI: never offer the evening slot. Done before the any-available
+            // check so a date left with no daytime slots drops out entirely
+            // rather than rendering as an empty, unpickable day.
+            if ($hide_evening) {
+                unset($slot['times']['ev']);
+            }
 
             // Convert date format for comparison (API uses various formats)
             $normalized_date = date('Y-m-d', strtotime($date));
