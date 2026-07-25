@@ -15,8 +15,16 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-// Define connector path
-define('ISF_INTELLISOURCE_PATH', __DIR__);
+// Define connector path.
+//
+// FFFL_ prefix, not the ISF one: that namespace belongs to FormFlow Pro, which
+// ships its own IntelliSource connector and defines its path constant
+// unguarded. With both plugins active the second to load kept the FIRST
+// plugin's path, so Lite would require Pro's connector files - which declare
+// Pro's classes, never Lite's FFFL ones. A !defined() guard would only hide the
+// warning while leaving the path wrong. PHP 9 turns the redefinition into a
+// fatal. Guarded by NoProNamespaceCollisionTest.
+define('FFFL_INTELLISOURCE_PATH', __DIR__);
 
 /**
  * Load connector classes
@@ -26,8 +34,8 @@ function load_connector(): void {
     // build. The connector uses \FFFL\Api\XmlParser (loaded by class-plugin.php)
     // instead. Keeping this comment as a tombstone in case a future build
     // reintroduces a connector-specific parser.
-    require_once ISF_INTELLISOURCE_PATH . '/class-intellisource-field-mapper.php';
-    require_once ISF_INTELLISOURCE_PATH . '/class-intellisource-connector.php';
+    require_once FFFL_INTELLISOURCE_PATH . '/class-intellisource-field-mapper.php';
+    require_once FFFL_INTELLISOURCE_PATH . '/class-intellisource-connector.php';
 }
 
 /**
