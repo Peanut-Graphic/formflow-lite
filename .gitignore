@@ -34,3 +34,7 @@ debug.log
 .claude/worktrees/
 .phpunit.result.cache
 .phpunit.cache/
+
+# --- added by gitignore-sync on 2026-08-03 ---
+.cursor/*
+!.cursor/rules/
