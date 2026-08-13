@@ -63,9 +63,14 @@ final class WifiGateAdminSettingTest extends TestCase
         $this->assertSame(1, $found, 'Could not locate the require_wifi save expression.');
 
         $this->assertStringContainsString(
-            '!empty($_POST[\'require_wifi\'])',
+            'isset($_POST[\'require_wifi\'])',
             $m[1],
             'An unchecked checkbox posts nothing; the save must treat absence as off.'
+        );
+        $this->assertStringContainsString(
+            "!== ''",
+            $m[1],
+            'An explicitly empty checkbox value must remain off without using PHP empty coercion.'
         );
         $this->assertStringContainsString(
             "!== '0'",

@@ -28,6 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The WiFi eligibility toggle now uses strict request-value checks instead of PHP `empty()`, preserving the intended absent/empty/`"0"` behavior without treating other legitimate zero-like values as missing.
+
 - **A vendor-less install no longer fatals on the submission path — it refuses to boot instead.** Adopting the shared `Peanut\FormCore\Crypto\Encryptor` (#26/#28) gave `FFFL\Encryption` an external dependency, but `formflow-lite.php` guarded only the `require_once` of `vendor/autoload.php` and then kept loading. With `vendor/` missing, the first `new Encryption()` — reached from `Database`, `Public`, `Diagnostics`, the queue manager and the embed handler, i.e. any form save or submission — threw an uncaught `Error: Class "Peanut\FormCore\Crypto\Encryptor" not found`. There was a `class_exists` guard for the update gate one function below, but none for the encryptor.
 
   `fffl_init()` now fails closed with an actionable admin notice (mirroring FormFlow Pro, which already aborts this way), and `Encryption::__construct()` throws an explicit `RuntimeException` naming the missing package and the fix, so any path that runs outside the boot gate (direct include, WP-CLI, activation ordering) still fails comprehensibly.
