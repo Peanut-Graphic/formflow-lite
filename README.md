@@ -157,7 +157,7 @@ Visit [formflow.dev](https://formflow.dev) to learn more.
 
 ### Prerequisites
 - PHP 8.1+ for Composer dependencies and test tooling
-- Node.js 18+
+- Node.js 22.22.2 with npm 10.9.7 (`nvm use` from the repository root)
 - Composer
 
 ### Setup
@@ -168,7 +168,10 @@ cd formflow-lite
 
 # Install frontend dependencies
 cd frontend
-npm install
+npm ci --legacy-peer-deps
+
+# Verify package, lockfile, version-file, CI, and active runtime declarations
+npm run runtime:verify
 
 # Build frontend assets
 npm run build
