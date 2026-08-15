@@ -28,10 +28,12 @@ runtimes:
       - { scope: ci, source: .github/workflows/wp-contract.yml, value: "PHP 8.4" }
     production_observation: { status: verified, value: "PHP 8.5.9 on the central first-party installation; distributed client hosts unverified", observed_at: "2026-08-15T01:09:00-04:00", evidence: "read-only host interpreter and active-plugin inventory" }
   - name: node
-    baseline: "22"
+    baseline: "22.22.2 with npm 10.9.7"
     declarations:
-      - { scope: dependency, source: frontend/package.json, value: "engines and packageManager missing; stale version 3.2.2" }
-      - { scope: ci, source: .github/workflows/accessibility.yml, value: "Node 20" }
+      - { scope: dependency, source: frontend/package.json and frontend/package-lock.json, value: "Node 22.22.2; npm 10.9.7; stale frontend version 3.2.2 remains a release-identity exception" }
+      - { scope: development, source: .nvmrc, value: "22.22.2" }
+      - { scope: ci, source: .github/workflows/accessibility.yml, value: "Node 22.22.2 with npm 10.9.7 assertion on pull requests and main" }
+      - { scope: test, source: scripts/verify-runtime-contract.cjs, value: "Node, npm, version file, package metadata, lockfile, and CI declarations must remain internally consistent" }
     production_observation: { status: not-applicable }
   - name: wordpress
     baseline: WordPress 6.0+
@@ -71,14 +73,14 @@ distribution:
   canary: "yes"
   rollback: unknown
 exceptions:
-  - id: PAR-207
-    concern: JavaScript runtime declarations remain below the fleet baseline
-    reason: PAR-207 reconciles the PHP 8.0 host floor, PHP 8.1 locked development floor, exact-minimum required CI, current PHP 8.2/8.3, and real WordPress PHP 8.4; frontend CI still uses Node 20 and frontend/package.json declares neither engines.node nor packageManager.
-    risk: Local frontend builds, CI, and release assets can exercise materially different Node/npm versions.
+  - id: PAR-503
+    concern: The production frontend build is blocked by existing TypeScript test debt
+    reason: Exact Node 22.22.2/npm 10.9.7 verification passes the runtime contract, accessibility lint, and all 52 Vitest accessibility tests, but both typecheck and the production build fail on pre-existing unused imports, missing jest-axe declarations and matcher types, and stale Modal test fixtures. npm audit also reports the existing 1 critical, 2 high, and 3 moderate advisory baseline.
+    risk: Runtime parity is enforced, but a release asset cannot yet be reproduced from the tracked frontend source through the declared build command.
     owner: Peanut Graphic
-    verification: Pin fleet Node and npm versions and execute the frontend gates on the declared versions.
-    review_date: "2026-11-14"
-    status: accepted
+    verification: Repair the TypeScript test contract and dependency advisory baseline in a separate regression-tested unit, then make typecheck and a non-empty production build blocking release evidence.
+    review_date: "2026-08-22"
+    status: proposed
   - id: PAR-306
     concern: Distributed host databases include MariaDB but required CI exercises only MySQL 8
     reason: The plugin performs dbDelta and hand-written INFORMATION_SCHEMA and ALTER TABLE migrations during activation and automatic version/schema repair. The central first-party installation runs MariaDB 10.6.27 with latin1_swedish_ci and a non-strict SQL mode, while its real WordPress lane provides only mysql:8 and distributed client hosts remain unverified.
@@ -97,12 +99,14 @@ exceptions:
     status: proposed
 verification:
   status: live-verified
-  audited_commit: 7647c35320124eb3987e2b80733898649c3afaf6
+  audited_commit: 856533165d86f567696544855ff60a159dacb7e5
   last_reviewed: "2026-08-15"
   sources:
     - formflow-lite.php
     - composer.json
     - frontend/package.json
+    - frontend/package-lock.json
+    - .nvmrc
     - includes/class-activator.php
     - includes/class-deactivator.php
     - includes/class-webhook-handler.php
@@ -112,6 +116,7 @@ verification:
     - .github/workflows/accessibility.yml
     - .github/workflows/wp-contract.yml
     - scripts/verify-php-runtime.php
+    - scripts/verify-runtime-contract.cjs
     - Peanut-Graphic/peanut-meta:scripts/publish-plugin.sh
     - Peanut-Graphic/peanut-meta:scripts/verify-plugin-release.sh
     - GitHub Release v3.3.5 assets and signed manifest
@@ -119,6 +124,6 @@ verification:
     - Read-only central first-party PHP, WordPress, active-plugin, MariaDB version, collation, and SQL-mode metadata on 2026-08-15
   outstanding:
     - Inventory supported distributed client-host PHP, WordPress, database version, collation, and SQL-mode compatibility without collecting customer data.
-    - Align and pin Node and npm declarations under PAR-205.
     - Add supported MariaDB activation, upgrade, drift-repair, and real-WordPress contract lanes under PAR-306.
+    - Repair the frontend TypeScript/build and dependency advisory baseline under PAR-503.
     - Reconcile versions, product metadata, uninstall cleanup, blocking release gates, and rollback under PAR-405.
