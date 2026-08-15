@@ -1,0 +1,129 @@
+schema_version: 1
+project:
+  id: formflow-lite
+  name: FormFlow Lite
+  classification: distributed-plugin
+  repository: https://github.com/Peanut-Graphic/formflow-lite.git
+  lifecycle: active
+ownership:
+  platform: Peanut Graphic
+  deployment: Peanut Graphic
+  rollback: Peanut Graphic
+environments:
+  - name: distribution
+    kind: production
+    provider: GitHub Releases and Peanut License Server
+    url: "https://github.com/Peanut-Graphic/formflow-lite/releases"
+  - name: central-first-party-install
+    kind: production
+    provider: peanutgraphic.com shared WordPress hosting
+    url: "https://peanutgraphic.com"
+runtimes:
+  - name: php
+    baseline: WordPress compatibility matrix
+    declarations:
+      - { scope: dependency, source: formflow-lite.php, value: "Requires PHP 8.0" }
+      - { scope: dependency, source: composer.json and composer.lock, value: "runtime require >=8.0; locked development resolver platform 8.1.0 for PHPUnit dependencies" }
+      - { scope: ci, source: .github/workflows/tests.yml, value: "required exact PHP 8.0 parser/declaration, exact PHP 8.1 full suites, PHP 8.2/8.3 current suites, and PHP 8.3 dependency audit" }
+      - { scope: ci, source: .github/workflows/wp-contract.yml, value: "PHP 8.4" }
+    production_observation: { status: verified, value: "PHP 8.5.9 on the central first-party installation; distributed client hosts unverified", observed_at: "2026-08-15T01:09:00-04:00", evidence: "read-only host interpreter and active-plugin inventory" }
+  - name: node
+    baseline: "22.22.2 with npm 10.9.7"
+    declarations:
+      - { scope: dependency, source: frontend/package.json and frontend/package-lock.json, value: "Node 22.22.2; npm 10.9.7; stale frontend version 3.2.2 remains a release-identity exception" }
+      - { scope: development, source: .nvmrc, value: "22.22.2" }
+      - { scope: ci, source: .github/workflows/accessibility.yml, value: "Node 22.22.2 with npm 10.9.7 assertion on pull requests and main" }
+      - { scope: test, source: scripts/verify-runtime-contract.cjs, value: "Node, npm, version file, package metadata, lockfile, and CI declarations must remain internally consistent" }
+    production_observation: { status: not-applicable }
+  - name: wordpress
+    baseline: WordPress 6.0+
+    declarations:
+      - { scope: dependency, source: formflow-lite.php, value: "Requires at least 6.0" }
+      - { scope: test, source: .github/workflows/wp-contract.yml, value: "WordPress latest" }
+      - { scope: release, source: Peanut License Server /updates/check, value: "requires 6.0; tested 6.4" }
+    production_observation: { status: verified, value: "WordPress 6.9.7 on the central first-party installation; distributed client hosts unverified", observed_at: "2026-08-15T01:09:00-04:00", evidence: "read-only WP-CLI core-version and active-plugin inventory" }
+databases:
+  - name: host-database
+    role: transactional
+    baseline: Host MySQL or MariaDB compatibility
+    declarations:
+      - { scope: dependency, source: includes/class-activator.php, value: "WordPress dbDelta plus versioned INFORMATION_SCHEMA and ALTER TABLE migrations on activation, version drift, or missing-table detection" }
+      - { scope: ci, source: .github/workflows/wp-contract.yml, value: "mysql:8 real WordPress REST contract lane" }
+      - { scope: test, source: .github/workflows/tests.yml, value: "pure reliability tests cover schema drift and upgrades without a real database" }
+    production_equivalent_test: "yes"
+    production_observation: { status: verified, value: "MariaDB 10.6.27, latin1_swedish_ci server collation, SQL mode ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION on the central first-party installation; distributed client hosts unverified", observed_at: "2026-08-15T01:09:00-04:00", evidence: "read-only database metadata query; no application rows read" }
+services:
+  - kind: other
+    baseline: Peanut License Server mu-plugin for update discovery and entitlement-free distribution
+    declarations:
+      - { scope: dependency, source: formflow-lite.php, value: "host-supplied packages are fail-closed through the shared Ed25519 signed-update gate" }
+      - { scope: release, source: Peanut License Server /updates/check, value: "GitHub Release URL and update metadata for formflow-lite" }
+    production_observation: { status: unverified }
+  - kind: other
+    baseline: Instance-configured external utility and webhook integrations
+    declarations:
+      - { scope: dependency, source: connectors/intellisource, value: "HTTPS enrollment, validation, scheduling, and portal APIs" }
+      - { scope: dependency, source: includes/class-webhook-handler.php, value: "signed outbound HTTP webhooks, including local Peanut Suite integration" }
+    production_observation: { status: unverified }
+distribution:
+  mode: signed-github-release
+  source_of_truth: Peanut Meta scripts/publish-plugin.sh
+  versioned_artifact: "yes"
+  signed: "yes"
+  canary: "yes"
+  rollback: unknown
+exceptions:
+  - id: PAR-503
+    concern: The production frontend build is blocked by existing TypeScript test debt
+    reason: Exact Node 22.22.2/npm 10.9.7 verification passes the runtime contract, accessibility lint, and all 52 Vitest accessibility tests, but both typecheck and the production build fail on pre-existing unused imports, missing jest-axe declarations and matcher types, and stale Modal test fixtures. npm audit also reports the existing 1 critical, 2 high, and 3 moderate advisory baseline.
+    risk: Runtime parity is enforced, but a release asset cannot yet be reproduced from the tracked frontend source through the declared build command.
+    owner: Peanut Graphic
+    verification: Repair the TypeScript test contract and dependency advisory baseline in a separate regression-tested unit, then make typecheck and a non-empty production build blocking release evidence.
+    review_date: "2026-08-22"
+    status: proposed
+  - id: PAR-306
+    concern: Distributed host databases include MariaDB but required CI exercises only MySQL 8
+    reason: The plugin performs dbDelta and hand-written INFORMATION_SCHEMA and ALTER TABLE migrations during activation and automatic version/schema repair. The central first-party installation runs MariaDB 10.6.27 with latin1_swedish_ci and a non-strict SQL mode, while its real WordPress lane provides only mysql:8 and distributed client hosts remain unverified.
+    risk: MariaDB-specific DDL, ENUM, index, collation, or migration behavior can fail on client sites without appearing in the required gate.
+    owner: Peanut Graphic
+    verification: Run activation, sequential upgrade, drift repair, and real-WordPress contracts against every supported MySQL and MariaDB lane.
+    review_date: "2026-11-14"
+    status: accepted
+  - id: PAR-405
+    concern: Release metadata, cleanup contract, verification gates, and rollback evidence drift
+    reason: The plugin and signed release are 3.3.5 while frontend metadata reports 3.2.2. The live update endpoint serves Peanut Suite description, installation, changelog, and FAQ content. The repository and signed ZIP lack uninstall.php even though the deactivator says full cleanup occurs on uninstall; dependency audit and accessibility lint are advisory, and the publisher has no rollback assertion.
+    risk: Operators and clients receive misleading product metadata, stored plugin data has no declared uninstall cleanup entrypoint, release-critical failures can be advisory only, and an update incident has no source-verifiable rollback control.
+    owner: Peanut Graphic
+    verification: Establish one version and product-metadata source, implement and package the declared cleanup contract, promote release-critical gates after repairing known debt, and add a tested rollback check to the canonical publisher.
+    review_date: "2026-11-14"
+    status: proposed
+verification:
+  status: live-verified
+  audited_commit: 856533165d86f567696544855ff60a159dacb7e5
+  last_reviewed: "2026-08-15"
+  sources:
+    - formflow-lite.php
+    - composer.json
+    - frontend/package.json
+    - frontend/package-lock.json
+    - .nvmrc
+    - includes/class-activator.php
+    - includes/class-deactivator.php
+    - includes/class-webhook-handler.php
+    - includes/class-peanut-integration.php
+    - connectors/intellisource
+    - .github/workflows/tests.yml
+    - .github/workflows/accessibility.yml
+    - .github/workflows/wp-contract.yml
+    - scripts/verify-php-runtime.php
+    - scripts/verify-runtime-contract.cjs
+    - Peanut-Graphic/peanut-meta:scripts/publish-plugin.sh
+    - Peanut-Graphic/peanut-meta:scripts/verify-plugin-release.sh
+    - GitHub Release v3.3.5 assets and signed manifest
+    - Peanut License Server /updates/check and /updates/info responses for formflow-lite
+    - Read-only central first-party PHP, WordPress, active-plugin, MariaDB version, collation, and SQL-mode metadata on 2026-08-15
+  outstanding:
+    - Inventory supported distributed client-host PHP, WordPress, database version, collation, and SQL-mode compatibility without collecting customer data.
+    - Add supported MariaDB activation, upgrade, drift-repair, and real-WordPress contract lanes under PAR-306.
+    - Repair the frontend TypeScript/build and dependency advisory baseline under PAR-503.
+    - Reconcile versions, product metadata, uninstall cleanup, blocking release gates, and rollback under PAR-405.
