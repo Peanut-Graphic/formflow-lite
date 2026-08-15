@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { axe, toHaveNoViolations } from 'jest-axe';
 import Input from '../../components/common/Input';
@@ -210,8 +210,7 @@ describe('Form Components Accessibility', () => {
   describe('Modal Component', () => {
     it('should have no accessibility violations when open', async () => {
       const { container } = render(
-        <Modal isOpen={true} onClose={() => {}}>
-          <h2>Modal Title</h2>
+        <Modal isOpen={true} onClose={() => {}} title="Modal Title">
           <p>Modal content</p>
         </Modal>
       );
@@ -221,8 +220,8 @@ describe('Form Components Accessibility', () => {
 
     it('should have a role attribute when open', () => {
       render(
-        <Modal isOpen={true} onClose={() => {}}>
-          <h2>Modal</h2>
+        <Modal isOpen={true} onClose={() => {}} title="Modal">
+          <p>Modal body</p>
         </Modal>
       );
       const modal = screen.getByRole('dialog', { hidden: true });
