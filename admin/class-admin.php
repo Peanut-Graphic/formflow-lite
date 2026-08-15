@@ -967,7 +967,7 @@ class Admin {
             'demo_mode' => isset($_POST['demo_mode']) && $_POST['demo_mode'] !== '' && $_POST['demo_mode'] !== '0',
             // WiFi eligibility gate. Opt-in per instance: a utility that never
             // asked for it must never have its live form change.
-            'require_wifi' => !empty($_POST['require_wifi']) && $_POST['require_wifi'] !== '0'
+            'require_wifi' => isset($_POST['require_wifi']) && $_POST['require_wifi'] !== '' && $_POST['require_wifi'] !== '0'
         ]);
 
         $data = [
