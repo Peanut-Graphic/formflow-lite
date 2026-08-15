@@ -19,8 +19,8 @@ runtimes:
     baseline: WordPress compatibility matrix
     declarations:
       - { scope: dependency, source: formflow-lite.php, value: "Requires PHP 8.0" }
-      - { scope: dependency, source: composer.json, value: "require >=8.0; platform 8.2.0" }
-      - { scope: ci, source: .github/workflows/tests.yml, value: "PHP 8.2 and 8.3 tests; PHP 8.3 dependency audit" }
+      - { scope: dependency, source: composer.json and composer.lock, value: "runtime require >=8.0; locked development resolver platform 8.1.0 for PHPUnit dependencies" }
+      - { scope: ci, source: .github/workflows/tests.yml, value: "required exact PHP 8.0 parser/declaration, exact PHP 8.1 full suites, PHP 8.2/8.3 current suites, and PHP 8.3 dependency audit" }
       - { scope: ci, source: .github/workflows/wp-contract.yml, value: "PHP 8.4" }
     production_observation: { status: not-applicable }
   - name: node
@@ -68,13 +68,13 @@ distribution:
   rollback: unknown
 exceptions:
   - id: PAR-207
-    concern: PHP and JavaScript runtime declarations do not define one supported build and host matrix
-    reason: The plugin permits PHP 8.0, Composer resolves for PHP 8.2, CI spans PHP 8.2 through 8.4, frontend CI uses Node 20, and frontend/package.json declares neither engines.node nor packageManager.
-    risk: Customer hosts, dependency resolution, CI, and release assets can exercise materially different runtimes and package-manager behavior.
+    concern: JavaScript runtime declarations remain below the fleet baseline
+    reason: PAR-207 reconciles the PHP 8.0 host floor, PHP 8.1 locked development floor, exact-minimum required CI, current PHP 8.2/8.3, and real WordPress PHP 8.4; frontend CI still uses Node 20 and frontend/package.json declares neither engines.node nor packageManager.
+    risk: Local frontend builds, CI, and release assets can exercise materially different Node/npm versions.
     owner: Peanut Graphic
-    verification: Approve the supported WordPress PHP matrix, align the header and Composer platform declaration, exercise every supported PHP lane, and pin fleet Node and npm versions.
+    verification: Pin fleet Node and npm versions and execute the frontend gates on the declared versions.
     review_date: "2026-11-14"
-    status: proposed
+    status: accepted
   - id: PAR-306
     concern: Distributed host databases include MariaDB but required CI exercises only MySQL 8
     reason: The plugin performs dbDelta and hand-written INFORMATION_SCHEMA and ALTER TABLE migrations during activation and automatic version/schema repair, while its real WordPress lane provides only mysql:8.
@@ -107,11 +107,12 @@ verification:
     - .github/workflows/tests.yml
     - .github/workflows/accessibility.yml
     - .github/workflows/wp-contract.yml
+    - scripts/verify-php-runtime.php
     - Peanut-Graphic/peanut-meta:scripts/publish-plugin.sh
     - Peanut-Graphic/peanut-meta:scripts/verify-plugin-release.sh
     - GitHub Release v3.3.5 assets and signed manifest
     - Peanut License Server /updates/check and /updates/info responses for formflow-lite
   outstanding:
-    - Align and pin PHP, Node, and npm declarations under PAR-207 and PAR-205.
+    - Align and pin Node and npm declarations under PAR-205.
     - Add supported MariaDB activation, upgrade, drift-repair, and real-WordPress contract lanes under PAR-306.
     - Reconcile versions, product metadata, uninstall cleanup, blocking release gates, and rollback under PAR-405.
