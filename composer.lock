@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8956ae91e7d5dd2264710831e4d3dac7",
+    "content-hash": "3cd6465b093e3433dd8ec9004057e650",
     "packages": [
         {
             "name": "peanut/formflow-core",
@@ -1968,7 +1968,7 @@
     },
     "platform-dev": {},
     "platform-overrides": {
-        "php": "8.2.0"
+        "php": "8.1.0"
     },
     "plugin-api-version": "2.9.0"
 }

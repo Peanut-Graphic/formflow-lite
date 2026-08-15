@@ -19,6 +19,49 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Public host floor. The locked PHPUnit graph begins at PHP 8.1, so this lane
+  # deliberately avoids development dependency resolution and proves the exact
+  # PHP 8.0 parser plus the cross-file runtime declaration contract.
+  php-runtime-minimum:
+    name: PHP 8.0 runtime declarations
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.0"
+          coverage: none
+      - name: Verify PHP 8.0 runtime declarations
+        run: php scripts/verify-php-runtime.php --expect-runtime=8.0
+      - name: Parse every tracked PHP file on PHP 8.0
+        run: git ls-files -z '*.php' | xargs -0 -n1 php -l
+
+  # Exact development floor. Its display name intentionally matches the
+  # repository's required context, replacing the impossible unsuffixed matrix
+  # expectation with a real blocking job rather than a protection bypass.
+  php-development-minimum:
+    name: Net 6 + 7 — property & contract (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: xml
+          tools: composer
+      - name: Install locked dependencies at the development floor
+        run: composer install --no-interaction --prefer-dist
+      - name: Verify PHP 8.1 development declarations
+        run: php scripts/verify-php-runtime.php --expect-development-runtime=8.1
+      - name: Property tests (net 6)
+        run: vendor/bin/phpunit -c phpunit.property.xml
+      - name: Contract tests (net 7)
+        run: vendor/bin/phpunit -c phpunit.contract.xml
+      - name: Reliability tests (schema-drift + upgrade + Pro-table guards)
+        run: vendor/bin/phpunit -c phpunit.reliability.xml
+      - name: Unit tests (mock harness)
+        run: vendor/bin/phpunit --testsuite unit
+
   static-footguns:
     name: CLASS-007 static foot-gun gate
     runs-on: ubuntu-latest
@@ -54,7 +97,7 @@ jobs:
         run: composer audit --no-interaction || true
 
   php-tests:
-    name: Net 6 + 7 — property & contract (blocking)
+    name: Net 6 + 7 — current property & contract
     runs-on: ubuntu-latest
     strategy:
       fail-fast: true
