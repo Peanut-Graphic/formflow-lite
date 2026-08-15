@@ -34,6 +34,13 @@ A lightweight, API-integrated enrollment and scheduling form plugin for WordPres
 - PHP 8.0+
 - MySQL 5.7+ or MariaDB 10.3+
 
+The installed plugin and shared FormFlow Core runtime support PHP 8.0 and
+later. Local dependency resolution and the complete PHP test suites require
+PHP 8.1 or later because the locked PHPUnit graph includes
+`doctrine/instantiator` 2.x. Required CI separately proves exact PHP 8.0
+parsing/declarations, the full suites on exact PHP 8.1, current PHP 8.2/8.3,
+and the real WordPress contract on PHP 8.4.
+
 ## Installation
 
 1. Upload the `formflow-lite` folder to `/wp-content/plugins/`
@@ -149,7 +156,7 @@ Visit [formflow.dev](https://formflow.dev) to learn more.
 ## Development
 
 ### Prerequisites
-- PHP 8.0+
+- PHP 8.1+ for Composer dependencies and test tooling
 - Node.js 18+
 - Composer
 
