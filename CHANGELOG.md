@@ -5,6 +5,50 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.5] - 2026-07-24
+
+### Fixed
+- **Stopped squatting on FormFlow Pro's constant namespace.** Both plugins defined
+  `ISF_INTELLISOURCE_PATH` unguarded, so with both active whichever loaded second
+  lost: the constant kept the first plugin's path and Lite's loader would require
+  Pro's connector files, declaring Pro's classes. Found on peanutgraphic.com.
+
+## [3.3.4] - 2026-07-24
+
+### Fixed
+- **The standalone scheduler's "Confirm Appointment" button was permanently
+  disabled.** `handleTimeSelection` only re-enabled the enrollment-wizard button,
+  while the standalone form's submit button ships `disabled` and nothing turned it
+  back on — a customer could pick a date and time and never confirm, with the
+  button looking active the whole time. Plus three further items from Pepco/
+  Delmarva client feedback.
+
+## [3.3.3] - 2026-07-21
+
+### Fixed
+- **The WiFi gate failed silently on cache-stripped hosts.** The live Pepco form
+  serves `enrollment.js` with no `?ver=` query string — the site strips query
+  strings from static resources — and the plugin relied on that string to bust
+  browser caches. A returning visitor got the new markup with their cached old
+  script. The gate now fails visibly instead, the reveal callout moved to CSS,
+  and the plugin keeps its own cache-buster.
+
+## [3.3.2] - 2026-07-21
+
+### Fixed
+- **A configured Default State now outranks a validated one.** Reported from the
+  live Pepco DC form: Default State was set to DC in the backend and the public
+  form still defaulted to MD, because the step-3 template ranked API-validated
+  address data above the instance's configured default.
+
+## [3.3.1] - 2026-07-21
+
+### Fixed
+- **The WiFi requirement could not be switched on by any means.** Ticking
+  "Require WiFi for thermostat" and saving stored nothing: `admin.js` builds the
+  `fffl_save_instance` payload as an explicit whitelist, and `require_wifi` was
+  not on it. The toggle also moved to Form Fields, where it belongs.
+
 ## [3.3.0] - 2026-07-21
 
 ### Added
