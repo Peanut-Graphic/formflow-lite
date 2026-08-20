@@ -82,7 +82,7 @@ jobs:
         run: semgrep --config .peanut/static-rules/peanut-php-footguns.yml includes/ --error
 
   security:
-    name: Net 2 — dependency audit (non-blocking)
+    name: Net 2 — dependency audit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -92,9 +92,30 @@ jobs:
           tools: composer
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist
-      - name: composer audit
-        # Start non-blocking; ratchet to blocking once the tree is clean.
-        run: composer audit --no-interaction || true
+      - name: composer audit (blocking)
+        # Was `|| true` with "ratchet to blocking once the tree is clean".
+        # The tree is clean — `composer audit --locked` reports no advisories —
+        # so the ratchet turns here rather than staying a permanent maybe.
+        run: composer audit --no-interaction
+
+      # There was no npm gate at all, and the frontend is where the advisories
+      # actually were: four open, one critical, none of which CI could ever
+      # have reported. Only the Dependabot alert feed knew. Blocking at
+      # `high`, matching the level the rest of the fleet gates at.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.22.2"
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci --no-audit --no-fund
+      # Blocking at MODERATE, not high. npm grades real XSS findings
+      # "moderate" (e.g. GHSA-55q2-fjhq-7xh7, dompurify), and a high gate
+      # exits 0 on them — verified by execution against a vulnerable pin.
+      # The tree audits clean at moderate today, so this holds the line
+      # instead of only appearing to.
+      - name: npm audit (blocking, moderate)
+        working-directory: frontend
+        run: npm audit --audit-level=moderate
 
   php-tests:
     name: Net 6 + 7 — current property & contract
