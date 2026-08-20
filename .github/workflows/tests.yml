@@ -108,9 +108,14 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci --no-audit --no-fund
-      - name: npm audit (blocking, high)
+      # Blocking at MODERATE, not high. npm grades real XSS findings
+      # "moderate" (e.g. GHSA-55q2-fjhq-7xh7, dompurify), and a high gate
+      # exits 0 on them — verified by execution against a vulnerable pin.
+      # The tree audits clean at moderate today, so this holds the line
+      # instead of only appearing to.
+      - name: npm audit (blocking, moderate)
         working-directory: frontend
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=moderate
 
   php-tests:
     name: Net 6 + 7 — current property & contract
