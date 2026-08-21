@@ -62,11 +62,23 @@ class Plugin {
         // UTM Tracker for basic attribution (passed to webhooks)
         require_once FFFL_PLUGIN_DIR . 'includes/class-utm-tracker.php';
 
-        // Peanut Suite integration
+        // Peanut Suite integration.
+        //
+        // NOT add_action('plugins_loaded', ...): this plugin boots via
+        // fffl_init on the `init` hook, which fires AFTER plugins_loaded --
+        // so that registration is a silent no-op and PeanutIntegration never
+        // instantiated at all. (The identical line in full FormFlow works
+        // because THAT plugin boots on plugins_loaded@10, and a same-hook
+        // @15 registration still runs. Copying it here changed its meaning.)
+        // Same failure family as peanut-connect's dead migration hook.
         require_once FFFL_PLUGIN_DIR . 'includes/class-peanut-integration.php';
-        add_action('plugins_loaded', function() {
+        if (did_action('plugins_loaded')) {
             PeanutIntegration::instance();
-        }, 15);
+        } else {
+            add_action('plugins_loaded', function() {
+                PeanutIntegration::instance();
+            }, 15);
+        }
     }
 
     /**

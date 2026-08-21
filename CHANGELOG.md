@@ -5,6 +5,37 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.7] - 2026-08-21
+
+### Fixed
+- **Two features were dead since the `init`-hook boot.** The plugin boots via
+  `fffl_init` on `init`, which fires after `plugins_loaded` — so two
+  registrations issued from the boot path were silent no-ops. (1) The Peanut
+  Suite integration registered on `plugins_loaded@15` and **never
+  instantiated**; it now runs directly when `plugins_loaded` is already
+  history. (2) The connector registry's `plugins_loaded@5` self-hook never
+  fired, so `fffl_register_connectors` never ran and the bundled IntelliSource
+  connector was **never registered** — every embed/queue lookup returned null.
+  The boot now calls `init_connectors()` explicitly, after the bundled loaders
+  are included. Guarded by a real-WordPress regression test proven to fail on
+  the unfixed code.
+
+## [3.3.6] - 2026-08-21
+
+### Security
+- **Dependency refresh clearing all six open advisories**, including the
+  critical vitest chain: vitest 2.1.9 → 3.2.7, which also drops the nested
+  vite 5.4.21 and esbuild 0.21.5 duplicates; dompurify 3.4.12 → 3.4.14.
+  Tracked frontend bundles recompiled from the patched tree.
+- **The dependency audit gate is now blocking** (`composer audit` without
+  `|| true`), verified passing against the committed lockfile before the flip.
+
+### Fixed
+- **The vendored WordPress test-harness no longer silently tests against
+  trunk.** wordpress-develop tags are three-part; the series fallback missed
+  and fell through to trunk's test library. Now resolves `X.Y` → `X.Y.0` and
+  fails loudly for pinned versions, with an offline regression test.
+
 ## [3.3.5] - 2026-07-24
 
 ### Fixed
