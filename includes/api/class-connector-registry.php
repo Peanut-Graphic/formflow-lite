@@ -55,6 +55,22 @@ class ConnectorRegistry {
      * Private constructor for singleton
      */
     private function __construct() {
+        // The plugin boots on `init`, so by the time this singleton is first
+        // constructed (fffl_init), plugins_loaded has already finished firing
+        // and the registration below is a silent no-op -- init_connectors()
+        // never ran, fffl_register_connectors never fired, and the bundled
+        // IntelliSource connector was never registered. Full FormFlow hit the
+        // same trap and compensates by calling init_connectors() explicitly
+        // from its boot; do both here so neither path can rot alone.
+        // Deliberately NOT auto-firing init_connectors() here: on the fixed
+        // boot path the singleton is constructed BEFORE the bundled connector
+        // loaders are require_once'd, so firing now would broadcast
+        // fffl_register_connectors to an empty room. fffl_init() calls
+        // init_connectors() explicitly, after fffl_load_bundled_connectors().
+        if (did_action('plugins_loaded')) {
+            return;
+        }
+
         // Allow plugins to register connectors early
         add_action('plugins_loaded', [$this, 'init_connectors'], 5);
     }

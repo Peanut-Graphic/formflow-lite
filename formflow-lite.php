@@ -264,6 +264,13 @@ function fffl_init() {
     // Load bundled connectors
     fffl_load_bundled_connectors();
 
+    // Explicit init, AFTER the bundled loaders are included so their
+    // fffl_register_connectors hooks are attached when it fires. The
+    // registry's own plugins_loaded@5 self-hook cannot fire from an
+    // init-boot plugin (plugins_loaded is already history), which is how
+    // the IntelliSource connector went unregistered on every web request.
+    FFFL\Api\ConnectorRegistry::instance()->init_connectors();
+
     // Load plugin
     require_once FFFL_PLUGIN_DIR . 'includes/class-plugin.php';
     $plugin = new FFFL\Plugin();
