@@ -2,8 +2,7 @@
 #
 # Realistic scope: the property (net 6) and contract (net 7) suites are PURE PHP
 # and need no WordPress boot, so they are the blocking gate. The CLASS-007 static
-# foot-gun gate (semgrep) is also blocking. composer audit (net 2) runs
-# non-blocking for now and is wired to ratchet to blocking later.
+# foot-gun gate (semgrep) and dependency audits (net 2) are blocking.
 name: Tests
 
 on:
@@ -98,10 +97,33 @@ jobs:
         # so the ratchet turns here rather than staying a permanent maybe.
         run: composer audit --no-interaction
 
-      # There was no npm gate at all, and the frontend is where the advisories
-      # actually were: four open, one critical, none of which CI could ever
-      # have reported. Only the Dependabot alert feed knew. Blocking at
-      # `high`, matching the level the rest of the fleet gates at.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install locked Python auditor
+        run: |
+          python -m venv "$RUNNER_TEMP/dependency-audit-venv"
+          "$RUNNER_TEMP/dependency-audit-venv/bin/python" -m pip install \
+            --require-hashes \
+            --no-deps \
+            -r requirements-dependency-audit.lock
+
+      - name: Audit the locked Python auditor
+        run: |
+          "$RUNNER_TEMP/dependency-audit-venv/bin/pip-audit" \
+            -r requirements-dependency-audit.lock \
+            --no-deps \
+            --disable-pip
+
+      - name: Audit the locked platform validator
+        working-directory: .peanut/platform
+        run: |
+          "$RUNNER_TEMP/dependency-audit-venv/bin/pip-audit" \
+            -r requirements.lock \
+            --no-deps \
+            --disable-pip
+
       - uses: actions/setup-node@v4
         with:
           node-version: "22.22.2"

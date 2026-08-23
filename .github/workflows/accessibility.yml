@@ -38,7 +38,6 @@ jobs:
         run: npm ci --legacy-peer-deps
 
       - name: ESLint with jsx-a11y
-        continue-on-error: true
         run: |
           npm run lint:a11y -- \
             --pass-on-unpruned-suppressions \
@@ -53,6 +52,15 @@ jobs:
 
       - name: Run accessibility tests
         run: npx vitest run --reporter=verbose -- a11y
+
+      - name: Typecheck frontend
+        run: npm run typecheck
+
+      - name: Build production frontend
+        run: npm run build
+
+      - name: Require non-empty production artifact
+        run: test -s ../assets/dist/js/main.js && test -s ../assets/dist/css/main.css
 
       - name: Upload test results
         if: always()

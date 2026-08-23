@@ -32,7 +32,7 @@ runtimes:
     declarations:
       - { scope: dependency, source: frontend/package.json and frontend/package-lock.json, value: "Node 22.22.2; npm 10.9.7; stale frontend version 3.2.2 remains a release-identity exception" }
       - { scope: development, source: .nvmrc, value: "22.22.2" }
-      - { scope: ci, source: .github/workflows/accessibility.yml, value: "Node 22.22.2 with npm 10.9.7 assertion on pull requests and main" }
+      - { scope: ci, source: .github/workflows/accessibility.yml, value: "Node 22.22.2 with npm 10.9.7 assertion, blocking accessibility lint/tests, typecheck, and non-empty production build on pull requests and main" }
       - { scope: test, source: scripts/verify-runtime-contract.cjs, value: "Node, npm, version file, package metadata, lockfile, and CI declarations must remain internally consistent" }
     production_observation: { status: not-applicable }
   - name: wordpress
@@ -73,14 +73,6 @@ distribution:
   canary: "yes"
   rollback: unknown
 exceptions:
-  - id: PAR-503
-    concern: The production frontend build is blocked by existing TypeScript test debt
-    reason: Exact Node 22.22.2/npm 10.9.7 verification passes the runtime contract, accessibility lint, and all 52 Vitest accessibility tests, but both typecheck and the production build fail on pre-existing unused imports, missing jest-axe declarations and matcher types, and stale Modal test fixtures. npm audit also reports the existing 1 critical, 2 high, and 3 moderate advisory baseline.
-    risk: Runtime parity is enforced, but a release asset cannot yet be reproduced from the tracked frontend source through the declared build command.
-    owner: Peanut Graphic
-    verification: Repair the TypeScript test contract and dependency advisory baseline in a separate regression-tested unit, then make typecheck and a non-empty production build blocking release evidence.
-    review_date: "2026-08-22"
-    status: proposed
   - id: PAR-306
     concern: Distributed client database versions, collations, and SQL modes remain unverified
     reason: Real WordPress contracts now exercise MySQL 8 and the central installation's MariaDB 10.6 family, including the dbDelta and hand-written INFORMATION_SCHEMA and ALTER TABLE migrations this plugin performs during activation and automatic version/schema repair. Distributed client-host versions, collations, SQL modes, and sequential historical upgrades remain unknown.
@@ -91,16 +83,16 @@ exceptions:
     status: accepted
   - id: PAR-405
     concern: Release metadata, cleanup contract, verification gates, and rollback evidence drift
-    reason: The plugin and signed release are 3.3.5 while frontend metadata reports 3.2.2. The live update endpoint serves Peanut Suite description, installation, changelog, and FAQ content. The repository and signed ZIP lack uninstall.php even though the deactivator says full cleanup occurs on uninstall; dependency audit and accessibility lint are advisory, and the publisher has no rollback assertion.
-    risk: Operators and clients receive misleading product metadata, stored plugin data has no declared uninstall cleanup entrypoint, release-critical failures can be advisory only, and an update incident has no source-verifiable rollback control.
+    reason: The plugin and signed release are 3.3.5 while frontend metadata reports 3.2.2. The live update endpoint serves Peanut Suite description, installation, changelog, and FAQ content. The repository and signed ZIP lack uninstall.php even though the deactivator says full cleanup occurs on uninstall; dependency, accessibility, typecheck, test, and production-build gates are blocking, but the publisher has no rollback assertion.
+    risk: Operators and clients receive misleading product metadata, stored plugin data has no declared uninstall cleanup entrypoint, and an update incident has no source-verifiable rollback control.
     owner: Peanut Graphic
-    verification: Establish one version and product-metadata source, implement and package the declared cleanup contract, promote release-critical gates after repairing known debt, and add a tested rollback check to the canonical publisher.
+    verification: Establish one version and product-metadata source, implement and package the declared cleanup contract, and add a tested rollback check to the canonical publisher.
     review_date: "2026-11-14"
     status: proposed
 verification:
   status: live-verified
   audited_commit: 856533165d86f567696544855ff60a159dacb7e5
-  last_reviewed: "2026-08-15"
+  last_reviewed: "2026-08-22"
   sources:
     - formflow-lite.php
     - composer.json
@@ -125,5 +117,4 @@ verification:
   outstanding:
     - Inventory supported distributed client-host PHP, WordPress, database version, collation, and SQL-mode compatibility without collecting customer data.
     - Inventory supported distributed-client database contracts and add sanitized sequential-upgrade and drift-repair fixtures for each retained family under PAR-306.
-    - Repair the frontend TypeScript/build and dependency advisory baseline under PAR-503.
     - Reconcile versions, product metadata, uninstall cleanup, blocking release gates, and rollback under PAR-405.
