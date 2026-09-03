@@ -32,7 +32,7 @@ expected_composer_exit() {
 expected_npm_exit() {
   # The variables in the next line belong to PHP, not the shell.
   # shellcheck disable=SC2016
-  php -r '$r=json_decode(file_get_contents($argv[1]), true); $v=$r["metadata"]["vulnerabilities"] ?? null; if (!is_array($v) || !isset($v["total"]) || !is_int($v["total"]) || $v["total"] < 0) { exit(2); } echo $v["total"] > 0 ? "1" : "0";' "$1"
+  php -r '$r=json_decode(file_get_contents($argv[1]), true); $v=$r["metadata"]["vulnerabilities"] ?? null; $keys=["info","low","moderate","high","critical"]; if (!is_array($v) || !isset($v["total"]) || !is_int($v["total"]) || $v["total"] < 0) { exit(2); } $sum=0; foreach ($keys as $key) { if (!isset($v[$key]) || !is_int($v[$key]) || $v[$key] < 0) { exit(2); } $sum += $v[$key]; } if ($sum !== $v["total"]) { exit(2); } echo $v["moderate"] + $v["high"] + $v["critical"] > 0 ? "1" : "0";' "$1"
 }
 
 run_composer_audit() {

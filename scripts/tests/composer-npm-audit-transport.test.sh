@@ -31,13 +31,14 @@ count=0
 count=$((count + 1))
 printf '%s' "$count" >"$FAKE_COUNT"
 case "$FAKE_MODE" in
-  clean) printf '%s\n' '{"metadata":{"vulnerabilities":{"total":0}}}' ; exit 0 ;;
-  finding) printf '%s\n' '{"metadata":{"vulnerabilities":{"high":1,"total":1}}}' ; exit 1 ;;
-  recover) [ "$count" -lt 3 ] && { printf '%s\n' '{"error":{"code":"E503"}}'; exit 1; }; printf '%s\n' '{"metadata":{"vulnerabilities":{"total":0}}}' ; exit 0 ;;
+  clean) printf '%s\n' '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0,"total":0}}}' ; exit 0 ;;
+  low) printf '%s\n' '{"metadata":{"vulnerabilities":{"info":0,"low":1,"moderate":0,"high":0,"critical":0,"total":1}}}' ; exit 0 ;;
+  finding) printf '%s\n' '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":1,"critical":0,"total":1}}}' ; exit 1 ;;
+  recover) [ "$count" -lt 3 ] && { printf '%s\n' '{"error":{"code":"E503"}}'; exit 1; }; printf '%s\n' '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0,"total":0}}}' ; exit 0 ;;
   exhaust) printf '%s\n' '{"error":{"code":"E503"}}'; exit 1 ;;
   config) exit 2 ;;
-  mismatch) printf '%s\n' '{"metadata":{"vulnerabilities":{"total":0}}}' ; exit 2 ;;
-  false-green) printf '%s\n' '{"metadata":{"vulnerabilities":{"high":1,"total":1}}}' ; exit 0 ;;
+  mismatch) printf '%s\n' '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":0,"critical":0,"total":0}}}' ; exit 2 ;;
+  false-green) printf '%s\n' '{"metadata":{"vulnerabilities":{"info":0,"low":0,"moderate":0,"high":1,"critical":0,"total":1}}}' ; exit 0 ;;
   malformed) printf '%s\n' '{"unexpected":true}' ; exit 0 ;;
 esac
 EOF
@@ -63,6 +64,7 @@ run_case composer mismatch 2 1
 run_case composer false-green 2 1
 run_case composer malformed 2 1
 run_case npm clean 0 1
+run_case npm low 0 1
 run_case npm finding 1 1
 run_case npm recover 0 3
 run_case npm exhaust 70 3
