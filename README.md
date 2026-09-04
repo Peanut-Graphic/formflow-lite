@@ -1,5 +1,7 @@
 # FormFlow Lite
 
+> **Dependency updates:** `renovate.json` extends `local>peanutgraphic/renovate-config`, but Renovate is not installed on the Peanut-Graphic GitHub org, so it has never opened a PR here. `.github/dependabot.yml` provides automated dependency PRs instead — see that file to add/adjust ecosystems.
+
 A lightweight, API-integrated enrollment and scheduling form plugin for WordPress. Designed for utility demand response programs with seamless third-party API integration.
 
 ## Features
