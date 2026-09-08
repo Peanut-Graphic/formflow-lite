@@ -45,11 +45,11 @@ $device_name = $device_type === 'thermostat'
             </div>
             <div class="ff-success-item">
                 <span class="ff-success-label"><?php esc_html_e('Date', 'formflow-lite'); ?></span>
-                <span class="ff-success-value" id="success-date"><?php echo esc_html(\FFFL\Utilities::getAppointmentDateDisplay($form_data['schedule_date'] ?? '')); ?></span>
+                <span class="ff-success-value" id="success-date"><?php echo esc_html(\FFFL\Utilities::getAppointmentDateDisplay($form_data['schedule_date'] ?? '') ?: ($form_data['schedule_date'] ?? '')); ?></span>
             </div>
             <div class="ff-success-item">
                 <span class="ff-success-label"><?php esc_html_e('Time', 'formflow-lite'); ?></span>
-                <span class="ff-success-value" id="success-time"><?php echo esc_html(\FFFL\Utilities::getTimeSlotDisplay($form_data['schedule_time'] ?? '')); ?></span>
+                <span class="ff-success-value" id="success-time"><?php echo esc_html(\FFFL\Utilities::getTimeSlotDisplay($form_data['schedule_time'] ?? '') ?: ($form_data['schedule_time'] ?? '')); ?></span>
             </div>
             <div class="ff-success-item">
                 <span class="ff-success-label"><?php esc_html_e('Address', 'formflow-lite'); ?></span>

@@ -181,7 +181,22 @@ final class SchedulerFeedbackTest extends TestCase
             'schedule_time' => '11:00 AM - 2:00 PM',
         ]);
 
-        $this->assertStringContainsString('08/11/2026', $html, 'A real appointment must still render.');
+        // The confirm step now renders the date in the same long form the
+        // booking summary and confirmation email use, rather than passing the
+        // stored value straight through. The intent of this assertion is
+        // unchanged: a real appointment must still appear on the page.
+        $this->assertStringContainsString(
+            'Tuesday, August 11, 2026',
+            $html,
+            'A real appointment must still render.'
+        );
+        // An already-readable time window must survive untouched - only the
+        // internal slot codes get translated.
+        $this->assertStringContainsString(
+            '11:00 AM - 2:00 PM',
+            $html,
+            'An already-formatted time window must not be blanked.'
+        );
         $this->assertMatchesRegularExpression('/data-goto-step="4"/', $html, 'Normal Edit must still reach the scheduler.');
     }
 }

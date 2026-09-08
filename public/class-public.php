@@ -1634,8 +1634,14 @@ class Frontend {
         // These used to be the raw stored values, so the email a customer keeps
         // told them "Date: 2026-09-14 / Time: MD" - MD being the internal code
         // for the midday window, not the state.
-        $schedule_date = \FFFL\Utilities::getAppointmentDateDisplay($form_data['schedule_date'] ?? '');
-        $schedule_time = \FFFL\Utilities::getTimeSlotDisplay($form_data['schedule_time'] ?? '');
+        // Fall back to the stored value rather than blanking it: schedule_time
+        // holds a slot code when the customer booked through the form, but the
+        // already-scheduled path stores whatever the API returned, which may
+        // already be a readable window.
+        $raw_date = $form_data['schedule_date'] ?? '';
+        $raw_time = $form_data['schedule_time'] ?? '';
+        $schedule_date = \FFFL\Utilities::getAppointmentDateDisplay($raw_date) ?: $raw_date;
+        $schedule_time = \FFFL\Utilities::getTimeSlotDisplay($raw_time) ?: $raw_time;
         if (empty($schedule_date)) {
             $schedule_date = __('To be scheduled', 'formflow-lite');
             $schedule_time = __('A representative will contact you', 'formflow-lite');

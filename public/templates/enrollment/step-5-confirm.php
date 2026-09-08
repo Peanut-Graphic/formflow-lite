@@ -191,11 +191,11 @@ if (empty($terms_content)) {
                 <div class="ff-review-grid ff-review-grid-2">
                     <div class="ff-review-item">
                         <span class="ff-review-label"><?php esc_html_e('Date', 'formflow-lite'); ?></span>
-                        <span class="ff-review-value" id="review-date"><?php echo esc_html(\FFFL\Utilities::getAppointmentDateDisplay($form_data['schedule_date'] ?? '')); ?></span>
+                        <span class="ff-review-value" id="review-date"><?php echo esc_html(\FFFL\Utilities::getAppointmentDateDisplay($form_data['schedule_date'] ?? '') ?: ($form_data['schedule_date'] ?? '')); ?></span>
                     </div>
                     <div class="ff-review-item">
                         <span class="ff-review-label"><?php esc_html_e('Time', 'formflow-lite'); ?></span>
-                        <span class="ff-review-value" id="review-time"><?php echo esc_html(\FFFL\Utilities::getTimeSlotDisplay($form_data['schedule_time'] ?? '')); ?></span>
+                        <span class="ff-review-value" id="review-time"><?php echo esc_html(\FFFL\Utilities::getTimeSlotDisplay($form_data['schedule_time'] ?? '') ?: ($form_data['schedule_time'] ?? '')); ?></span>
                     </div>
                 </div>
                 <?php endif; ?>
