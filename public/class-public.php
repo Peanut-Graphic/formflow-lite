@@ -1859,8 +1859,18 @@ class Frontend {
                     'schedule_time' => $this->get_time_display($schedule_time),
                 ], $instance_id);
 
-                // Send confirmation email
-                $this->send_confirmation_email($instance, $form_data);
+                // Send confirmation email. The third argument is required;
+                // omitting it raised an ArgumentCountError, which is an Error
+                // rather than an Exception and so escaped the catch below as an
+                // uncaught fatal - after the appointment had already been
+                // booked and marked completed. A standalone reschedule may have
+                // no confirmation number on file; the email and the success
+                // template both render fine without one.
+                $this->send_confirmation_email(
+                    $instance,
+                    $form_data,
+                    (string) ($form_data['confirmation_number'] ?? '')
+                );
 
                 wp_send_json_success([
                     'message' => __('Your appointment has been scheduled!', 'formflow-lite'),
@@ -1878,7 +1888,11 @@ class Frontend {
                 ]);
             }
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Throwable, not Exception: the booking call, the webhook and the
+            // confirmation email all run inside this try, and a PHP Error from
+            // any of them would otherwise leave the customer looking at a
+            // white-screen 500 for an appointment that was already booked.
             $this->db->log('error', 'Book appointment error: ' . $e->getMessage(), [], $instance_id);
 
             wp_send_json_error([
