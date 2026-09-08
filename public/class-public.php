@@ -254,8 +254,22 @@ class Frontend {
              data-form-type="<?php echo esc_attr($instance['form_type']); ?>">
 
             <?php if ($instance['settings']['demo_mode'] ?? false) : ?>
+                <?php
+                // Advertise the demo record for this instance's own state. The
+                // banner used to name the DC account on every program, so a
+                // Maryland form walked demo users into a Washington, DC address.
+                $ff_demo_state = \FFFL\Utilities::get($instance['utility'] ?? '')['state'] ?? '';
+                $ff_demo = \FFFL\Api\MockApiClient::get_demo_account_for_state($ff_demo_state);
+                ?>
                 <div class="ff-demo-banner">
-                    <?php esc_html_e('DEMO MODE - Using test data. Try account: 1234567890 with ZIP: 20001 (or any account with ZIP: 00000)', 'formflow-lite'); ?>
+                    <?php
+                    printf(
+                        /* translators: 1: demo account number, 2: demo ZIP code */
+                        esc_html__('DEMO MODE - Using test data. Try account: %1$s with ZIP: %2$s (or any account with ZIP: 00000)', 'formflow-lite'),
+                        esc_html($ff_demo['account']),
+                        esc_html($ff_demo['zip'])
+                    );
+                    ?>
                 </div>
             <?php elseif ($instance['test_mode']) : ?>
                 <div class="fffl-test-banner">
