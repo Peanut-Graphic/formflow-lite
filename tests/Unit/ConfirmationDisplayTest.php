@@ -87,6 +87,9 @@ final class ConfirmationDisplayTest extends TestCase
         $templates = [
             'public/templates/enrollment/success.php',
             'public/templates/scheduler/success.php',
+            // The review step shows the same two values before the customer
+            // commits, and had the same raw-value bug.
+            'public/templates/enrollment/step-5-confirm.php',
         ];
 
         foreach ($templates as $template) {
