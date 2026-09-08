@@ -556,14 +556,7 @@ class SchedulingResult {
      * Get human-readable time slot label
      */
     private function get_time_label(string $time_id): string {
-        $labels = [
-            'am' => '8:00 AM - 11:00 AM',
-            'md' => '11:00 AM - 2:00 PM',
-            'pm' => '2:00 PM - 5:00 PM',
-            'ev' => '5:00 PM - 8:00 PM'
-        ];
-
-        return $labels[$time_id] ?? strtoupper($time_id);
+        return \FFFL\Utilities::getTimeSlotDisplay($time_id) ?: strtoupper($time_id);
     }
 
     /**

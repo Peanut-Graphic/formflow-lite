@@ -2199,18 +2199,7 @@ class Frontend {
      * Get display string for time slot
      */
     private function get_time_display(string $time): string {
-        $displays = [
-            'AM' => '8:00 AM - 11:00 AM',
-            'am' => '8:00 AM - 11:00 AM',
-            'MD' => '11:00 AM - 2:00 PM',
-            'md' => '11:00 AM - 2:00 PM',
-            'PM' => '2:00 PM - 5:00 PM',
-            'pm' => '2:00 PM - 5:00 PM',
-            'EV' => '5:00 PM - 8:00 PM',
-            'ev' => '5:00 PM - 8:00 PM'
-        ];
-
-        return $displays[$time] ?? $time;
+        return \FFFL\Utilities::getTimeSlotDisplay($time) ?: $time;
     }
 
     /**

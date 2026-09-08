@@ -236,6 +236,62 @@ class Utilities
     }
 
     /**
+     * Get the customer-facing arrival window for a time slot code.
+     *
+     * Single source of truth for the ranges customers see once a slot is
+     * booked: the confirmation screens and the booking summary all render this
+     * string, so they cannot drift apart. Codes are the IntelliSOURCE slot
+     * identifiers (AM/MD/PM/EV) and are internal - never echo one to a
+     * customer. "MD" in particular reads as the state abbreviation for
+     * Maryland, which is exactly how it escaped notice on the confirmation
+     * screen.
+     *
+     * @param string $code Time slot code, in either case.
+     * @return string Arrival window, or an empty string for an unknown code.
+     */
+    public static function getTimeSlotDisplay(string $code): string
+    {
+        $windows = [
+            'AM' => '8:00 AM - 11:00 AM',
+            'MD' => '11:00 AM - 2:00 PM',
+            'PM' => '2:00 PM - 5:00 PM',
+            'EV' => '5:00 PM - 8:00 PM',
+        ];
+
+        return $windows[strtoupper($code)] ?? '';
+    }
+
+    /**
+     * Get the customer-facing form of an appointment date.
+     *
+     * Pairs with getTimeSlotDisplay(): the booking summary already shows
+     * "Wednesday, September 16, 2026", so the confirmation renders the same
+     * shape rather than the raw Y-m-d the API stores.
+     *
+     * @param string $date Date in Y-m-d form.
+     * @return string Formatted date, or an empty string if unparseable.
+     */
+    public static function getAppointmentDateDisplay(string $date): string
+    {
+        $date = trim($date);
+        if ($date === '') {
+            return '';
+        }
+
+        $timestamp = strtotime($date);
+        if ($timestamp === false) {
+            return '';
+        }
+
+        // Prefer date_i18n so month and weekday follow the site locale.
+        if (function_exists('date_i18n')) {
+            return date_i18n('l, F j, Y', $timestamp);
+        }
+
+        return date('l, F j, Y', $timestamp);
+    }
+
+    /**
      * Get time slot label with range
      *
      * @param string $code   Time slot code.
