@@ -833,6 +833,9 @@ class Frontend {
                 $form_data['email'] = $result->get_email();
             }
             $address = $result->get_address();
+            if ($is_scheduler) {
+                $address = fffl_apply_default_state_to_address($instance, $address);
+            }
             if (!empty($address['street'])) {
                 $form_data['address'] = $address;
             }
@@ -871,7 +874,7 @@ class Frontend {
             $this->trigger_webhook('account.validated', [
                 'account_number' => $account_number,
                 'customer_name' => $customer_name,
-                'premise_address' => $result->get_address(),
+                'premise_address' => $address,
                 'is_valid' => true,
             ], $instance_id);
 
@@ -882,7 +885,7 @@ class Frontend {
                     'first_name' => $result->get_first_name(),
                     'last_name' => $result->get_last_name(),
                     'email' => $result->get_email(),
-                    'address' => $result->get_address()
+                    'address' => $address
                 ]
             ];
 
@@ -2382,6 +2385,27 @@ function fffl_get_content(array $instance, string $key, string $default = ''): s
  */
 function fffl_get_default_state(array $instance): string {
     return $instance['settings']['default_state'] ?? '';
+}
+
+/**
+ * Apply a scheduler instance's configured jurisdiction to a service address.
+ *
+ * Scheduler instances are utility-program specific. Account-validation data
+ * (especially shared demo data) may contain a different state, but the form's
+ * configured Default State is authoritative for the program being scheduled.
+ *
+ * @param array $instance The form instance data
+ * @param array $address  Address returned by account validation
+ * @return array Address with the configured state/district applied
+ */
+function fffl_apply_default_state_to_address(array $instance, array $address): array {
+    $default_state = strtoupper(trim(fffl_get_default_state($instance)));
+
+    if (preg_match('/^[A-Z]{2}$/', $default_state)) {
+        $address['state'] = $default_state;
+    }
+
+    return $address;
 }
 
 /**

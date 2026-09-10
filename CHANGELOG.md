@@ -5,6 +5,14 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.9] - 2026-09-10
+
+### Fixed
+- **Scheduler service addresses now follow the configured Default State.** The
+  configured state or district overrides a conflicting account-validation or
+  demo address throughout scheduler display, persistence, confirmation, and
+  validation webhook data.
+
 ## [3.3.8] - 2026-09-10
 
 ### Added
