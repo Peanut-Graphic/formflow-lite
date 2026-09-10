@@ -27,18 +27,19 @@ $alt_phone_type = $form_data['alt_phone_type'] ?? 'home';
 $street = $form_data['street'] ?? ($form_data['validated_street'] ?? '');
 $street2 = $form_data['street2'] ?? '';
 $city = $form_data['city'] ?? ($form_data['validated_city'] ?? '');
-// Precedence: what the customer picked > the instance's configured Default
-// State > whatever address validation returned.
+// A configured state identifies the jurisdiction-specific program and is
+// authoritative. When it exists, the public select contains only that state.
 //
 // The configured default outranks validated data deliberately. These forms are
 // programme-specific - a DC instance serves a DC-only programme - so what an
 // operator sets in the backend is the authority for what the form shows.
 // Previously a non-empty validated_state shadowed the setting, so a DC form
 // defaulted to MD whenever validation (including test/demo data) said MD.
-// Customers can still change the field; this only decides the default.
-//
 // ?: throughout (not ??) so empty strings fall through rather than shadow.
-$state = ($form_data['state'] ?? '') ?: (fffl_get_default_state($instance) ?: ($form_data['validated_state'] ?? ''));
+$states = \FFFL\Utilities::getStates();
+$configured_state = strtoupper(fffl_get_default_state($instance));
+$configured_state = isset($states[$configured_state]) ? $configured_state : '';
+$state = $configured_state ?: (($form_data['state'] ?? '') ?: ($form_data['validated_state'] ?? ''));
 
 // DC is a federal district, not a state: relabel the field when DC is selected.
 $state_label_text = ($state === 'DC')
@@ -242,9 +243,16 @@ $btn_next = fffl_get_content($instance, 'btn_next', __('Continue to Scheduling',
                         <span class="ff-required">*</span>
                     </label>
                     <select name="state" id="state" class="ff-select" required autocomplete="address-level1">
-                        <option value=""><?php esc_html_e('Select State', 'formflow-lite'); ?></option>
-                        <option value="DC" <?php selected($state, 'DC'); ?>>District of Columbia</option>
-                        <option value="MD" <?php selected($state, 'MD'); ?>>Maryland</option>
+                        <?php if ($configured_state === '') : ?>
+                            <option value=""><?php esc_html_e('Select State', 'formflow-lite'); ?></option>
+                        <?php endif; ?>
+                        <?php foreach ($states as $state_code => $state_name) : ?>
+                            <?php if ($configured_state === '' || $state_code === $configured_state) : ?>
+                                <option value="<?php echo esc_attr($state_code); ?>" <?php selected($state, $state_code); ?>>
+                                    <?php echo esc_html($state_name); ?>
+                                </option>
+                            <?php endif; ?>
+                        <?php endforeach; ?>
                     </select>
                 </div>
 

@@ -30,6 +30,7 @@ $maintenance = $instance['settings']['maintenance'] ?? [];
 $states = [
     '' => __('-- Select State --', 'formflow-lite'),
     'DC' => 'District of Columbia',
+    'DE' => 'Delaware',
     'MD' => 'Maryland',
 ];
 
@@ -204,6 +205,8 @@ $wizard_steps = [
                                                 <?php foreach ($utilities as $key => $utility) : ?>
                                                     <option value="<?php echo esc_attr($key); ?>"
                                                             data-endpoint="<?php echo esc_attr($utility['api_endpoint']); ?>"
+                                                            data-default-state="<?php echo esc_attr($utility['default_state'] ?? ''); ?>"
+                                                            data-support-phone="<?php echo esc_attr($utility['support_phone'] ?? ''); ?>"
                                                             data-email-from="<?php echo esc_attr($utility['support_email_from']); ?>"
                                                             data-email-to="<?php echo esc_attr($utility['support_email_to']); ?>"
                                                             <?php selected($instance['utility'] ?? '', $key); ?>>
@@ -1363,10 +1366,14 @@ jQuery(document).ready(function($) {
     $('#utility').on('change', function() {
         var $selected = $(this).find(':selected');
         var endpoint = $selected.data('endpoint');
+        var defaultState = $selected.data('default-state');
+        var supportPhone = $selected.data('support-phone');
         var emailFrom = $selected.data('email-from');
         var emailTo = $selected.data('email-to');
 
         if (endpoint) $('#api_endpoint').val(endpoint);
+        if (defaultState) $('#default_state').val(defaultState);
+        if (supportPhone) $('#support_phone').val(supportPhone);
         if (emailFrom) $('#support_email_from').val(emailFrom);
         if (emailTo) $('#support_email_to').val(emailTo);
     });
