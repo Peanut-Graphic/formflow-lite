@@ -25,9 +25,8 @@ class Utilities
      */
     public static function getAll(): array
     {
-        // Delmarva Delaware is intentionally omitted: the Delaware Energy Wise
-        // Rewards program is not offered (no DE enrollment or scheduler).
         return [
+            'delmarva_de' => self::getDelmarvaDE(),
             'delmarva_md' => self::getDelmarvaMD(),
             'pepco_md' => self::getPepcoMD(),
             'pepco_dc' => self::getPepcoDC(),
@@ -94,6 +93,21 @@ class Utilities
             $options[$key] = $utility['name'];
         }
         return $options;
+    }
+
+    /**
+     * Get Delmarva Power - Delaware configuration
+     *
+     * @return array
+     */
+    private static function getDelmarvaDE(): array
+    {
+        $config = self::getDelmarvaMD();
+        $config['name'] = 'Delmarva Power - Delaware';
+        $config['short_name'] = 'Delmarva DE';
+        $config['state'] = 'DE';
+
+        return $config;
     }
 
     /**
@@ -268,6 +282,7 @@ class Utilities
     {
         return [
             'DC' => 'District of Columbia',
+            'DE' => 'Delaware',
             'MD' => 'Maryland',
         ];
     }

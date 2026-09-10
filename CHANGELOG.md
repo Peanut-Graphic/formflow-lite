@@ -5,6 +5,19 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.8] - 2026-09-10
+
+### Added
+- **Delmarva Power - Delaware enrollment and scheduler support.** The shared
+  utility registry, admin preset list, IntelliSOURCE connector presets, and
+  served-state list now include `delmarva_de` / Delaware.
+
+### Changed
+- **Configured form states are jurisdiction-locked on the public enrollment
+  form.** When an administrator sets Default State, that is the only state
+  option rendered to customers and it remains part of the submitted form. If
+  no state is configured, the full DC/DE/MD selector remains available.
+
 ## [3.3.7] - 2026-08-21
 
 ### Fixed

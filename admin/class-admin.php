@@ -846,29 +846,44 @@ class Admin {
      * Get utility preset configurations
      */
     public function get_utility_presets(): array {
-        // Delmarva Delaware omitted: the DE program is not offered.
         return [
+            'delmarva_de' => [
+                'name' => 'Delmarva Power - Delaware',
+                'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
+                'default_state' => 'DE',
+                'support_phone' => '1-888-818-0075',
+                'support_email_from' => 'support_delmarvaewr@powerportal.com',
+                'support_email_to' => 'customercare@comverge.com,comverge@rdimarketing.com'
+            ],
             'delmarva_md' => [
                 'name' => 'Delmarva Power - Maryland',
                 'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
+                'default_state' => 'MD',
+                'support_phone' => '1-888-818-0075',
                 'support_email_from' => 'support_delmarvaewr@powerportal.com',
                 'support_email_to' => 'customercare@comverge.com,comverge@rdimarketing.com'
             ],
             'pepco_md' => [
                 'name' => 'Pepco - Maryland',
                 'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
+                'default_state' => 'MD',
+                'support_phone' => '1-888-818-0075',
                 'support_email_from' => 'support_pepcoewr@powerportal.com',
                 'support_email_to' => 'customercare@comverge.com,comverge@rdimarketing.com'
             ],
             'pepco_dc' => [
                 'name' => 'Pepco - District of Columbia',
                 'api_endpoint' => 'https://ph.powerportal.com/phiIntelliSOURCE/api',
+                'default_state' => 'DC',
+                'support_phone' => '1-888-818-0075',
                 'support_email_from' => 'support_pepcoewr@powerportal.com',
                 'support_email_to' => 'customercare@comverge.com,comverge@rdimarketing.com'
             ],
             'custom' => [
                 'name' => 'Custom Configuration',
                 'api_endpoint' => '',
+                'default_state' => '',
+                'support_phone' => '',
                 'support_email_from' => '',
                 'support_email_to' => ''
             ]

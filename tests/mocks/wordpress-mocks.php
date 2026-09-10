@@ -38,6 +38,12 @@ if (!function_exists('esc_attr')) {
     }
 }
 
+if (!function_exists('esc_attr__')) {
+    function esc_attr__($text, $domain = 'default') {
+        return esc_attr($text);
+    }
+}
+
 if (!function_exists('esc_url')) {
     function esc_url($url) {
         return filter_var($url, FILTER_SANITIZE_URL);

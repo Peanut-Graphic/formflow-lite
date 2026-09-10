@@ -16,7 +16,7 @@
  *
  * These forms are program-specific: a DC instance serves a DC-only programme,
  * so what an operator configures in the backend is the authority for what the
- * form shows. A customer can still change the field; this is about the default.
+ * form shows and the only jurisdiction offered to the customer.
  *
  * @package FormFlow_Lite
  */
@@ -30,6 +30,7 @@ final class DefaultStatePrecedenceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        require_once FFFL_PLUGIN_DIR . 'includes/class-utilities.php';
         require_once FFFL_PLUGIN_DIR . 'public/class-public.php';
     }
 
@@ -49,7 +50,7 @@ final class DefaultStatePrecedenceTest extends TestCase
 
         $fffl_get_default_state = 'FFFL\Frontend\fffl_get_default_state';
         $expr = str_replace(
-            'fffl_get_default_state($instance)',
+            '$configured_state',
             '$fffl_get_default_state($instance)',
             $m[1]
         );
@@ -76,17 +77,16 @@ final class DefaultStatePrecedenceTest extends TestCase
     }
 
     /**
-     * What the customer actually picked always wins — we are setting a default,
-     * not overriding a person.
+     * A configured program state cannot be replaced by stale customer data.
      */
-    public function test_customer_selection_always_wins(): void
+    public function test_configured_state_wins_over_customer_data(): void
     {
         $state = $this->resolvedState(
             ['default_state' => 'DC'],
             ['state' => 'MD', 'validated_state' => 'MD']
         );
 
-        $this->assertSame('MD', $state, 'A state the customer chose must never be overridden.');
+        $this->assertSame('DC', $state, 'The configured program jurisdiction must remain authoritative.');
     }
 
     /**
@@ -112,5 +112,39 @@ final class DefaultStatePrecedenceTest extends TestCase
     public function test_nothing_configured_and_nothing_validated_is_empty(): void
     {
         $this->assertSame('', $this->resolvedState([], []));
+    }
+
+    /**
+     * Return the state option values rendered by the shipped enrollment step.
+     *
+     * @return string[]
+     */
+    private function renderedStateOptions(array $settings): array
+    {
+        $instance = ['id' => 1, 'settings' => $settings];
+        $form_data = [];
+
+        ob_start();
+        require FFFL_PLUGIN_DIR . 'public/templates/enrollment/step-3-info.php';
+        $html = (string) ob_get_clean();
+
+        $found = preg_match('/<select name="state".*?<\/select>/s', $html, $select);
+        $this->assertSame(1, $found, 'Could not locate the public state select.');
+
+        preg_match_all('/<option value="([A-Z]*)"/', $select[0], $options);
+        return $options[1];
+    }
+
+    public function test_configured_state_is_the_only_public_option(): void
+    {
+        $this->assertSame(['DE'], $this->renderedStateOptions(['default_state' => 'DE']));
+    }
+
+    public function test_unconfigured_state_keeps_every_served_option(): void
+    {
+        $this->assertSame(
+            ['', 'DC', 'DE', 'MD'],
+            $this->renderedStateOptions([])
+        );
     }
 }
