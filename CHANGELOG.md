@@ -5,6 +5,15 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- Data at rest now uses `peanut/formflow-core` ^0.6.0 (phase 1 of authenticated encryption):
+  stored values in the new XChaCha20-Poly1305 format (keyed by HKDF over the full
+  `FFFL_ENCRYPTION_KEY` / `wp_salt('auth')`) are readable, while writes stay in the legacy format
+  so a rollback to an older release keeps reading everything. Encryption is built with
+  `Encryptor::fromKeyMaterial()`. Phase 2 (a later release) switches writes to the new format.
+
 ## [3.3.9] - 2026-09-10
 
 ### Fixed

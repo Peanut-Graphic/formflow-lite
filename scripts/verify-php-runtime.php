@@ -34,7 +34,7 @@ if (!is_array($composer)) {
     if (($composer['config']['platform']['php'] ?? null) !== '8.1.0') {
         $failures[] = 'composer.json config.platform.php must be exact PHP 8.1.0';
     }
-    if (($composer['require']['peanut/formflow-core'] ?? null) !== '^0.5.0') {
+    if (($composer['require']['peanut/formflow-core'] ?? null) !== '^0.6.0') {
         $failures[] = 'composer.json must retain the shared runtime dependency witness';
     }
 }
@@ -56,8 +56,8 @@ if (!is_array($lock)) {
             $versions[$package['name']] = $package['version'];
         }
     }
-    if (($versions['peanut/formflow-core'] ?? null) !== 'v0.5.0') {
-        $failures[] = 'composer.lock must retain peanut/formflow-core v0.5.0';
+    if (($versions['peanut/formflow-core'] ?? null) !== 'v0.6.0') {
+        $failures[] = 'composer.lock must retain peanut/formflow-core v0.6.0';
     }
     if (($versions['doctrine/instantiator'] ?? null) !== '2.0.0') {
         $failures[] = 'composer.lock must retain the PHP 8.1 development-floor witness';
