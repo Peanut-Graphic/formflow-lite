@@ -27,6 +27,24 @@ class EncryptionTest extends TestCase
     // encrypt() and decrypt() Tests
     // =========================================================================
 
+    public function testReadsTheAuthenticatedV2FormatFromTheSameKeyMaterial(): void
+    {
+        // A formflow-core 0.6 writer with authenticated writes on, over the same
+        // key material. Only an Encryption built with fromKeyMaterial() derives
+        // the matching V2 key; the old constructor would derive it from the
+        // truncated legacy key and read nothing.
+        $writer = \Peanut\FormCore\Crypto\Encryptor::fromKeyMaterial(null, (string) wp_salt('auth'), true);
+        $stored = $writer->encrypt('api-token');
+
+        $this->assertStringStartsWith('ffc2:', $stored);
+        $this->assertSame('api-token', $this->encryption->decrypt($stored));
+    }
+
+    public function testStillWritesTheLegacyFormatSoARollbackCanReadIt(): void
+    {
+        $this->assertStringStartsNotWith('ffc2:', $this->encryption->encrypt('x'));
+    }
+
     public function testEncryptReturnsString(): void
     {
         $plaintext = 'Hello, World!';
