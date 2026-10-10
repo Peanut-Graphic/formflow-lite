@@ -5,6 +5,39 @@ All notable changes to FormFlow Lite are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Security
+- **Cached-page session sharing (HIGH).** The form rendered its session id into the page HTML
+  (`data-session`) and every public `fffl_*` AJAX handler found the submission by that
+  client-sent id alone, so behind a full-page cache every visitor of a cached copy shared one
+  session: visitor B's step 3 showed visitor A's name, email, phone and address, and B's posts
+  overwrote A's row. Sessions are now issued only by a new uncached `fffl_start_session` AJAX
+  call as an id plus an HMAC token (`SessionGuard`, keyed by `wp_salt('auth')`, compared with
+  `hash_equals`). Nothing session-related is rendered into HTML; `fffl_load_step`,
+  `fffl_validate_account`, `fffl_enroll_early`, `fffl_get_schedule_slots`,
+  `fffl_submit_enrollment`, `fffl_book_appointment`, `fffl_save_progress`,
+  `fffl_save_and_email` (and the unregistered `fffl_track_step`) refuse a missing or
+  mismatched pair before touching the database; clients can no longer choose session ids; a
+  completed session refuses further writes (only its confirmation step still loads). Resume
+  links re-bind the saved session with a fresh token. Form pages send `nocache_headers()` from
+  `template_redirect`, define `DONOTCACHEPAGE` and signal LiteSpeed Cache when the shortcode or
+  iframe embed renders.
+  Compatibility: browser tabs left open across the upgrade hold no token; their next step shows
+  "Your session has expired. Please refresh the page to start again."
+- **Enrollment trusted the client's account number.** `fffl_enroll_early` and
+  `fffl_submit_enrollment` merged the posted `form_data` over the session, so the account sent
+  to the IntelliSource enroll API (and the `enrollment_completed` flag) could differ from the
+  account that was validated, and `fffl_save_progress` could seed a never-validated session.
+  Server-owned keys (`account_number`, `utility_no`, `zip_code`, `ca_no`, `comverge_no`,
+  `validation_result`, `account_validated`, `fsr_no`, `scheduling_result`,
+  `confirmation_number`, `enrollment_completed`, `enrollment_response`, `_dd_code`,
+  `_eqloc_code`) are stripped from client `form_data`; `fffl_validate_account` records the
+  validated account as server-owned `account_number` + `utility_no` with an
+  `account_validated` flag; enrollment refuses (`account_not_validated`) without it.
+  Compatibility: a resume link for a session validated before this release must re-run the
+  account-validation step before enrolling.
+
 ## [3.3.10] - 2026-10-06
 
 ### Security

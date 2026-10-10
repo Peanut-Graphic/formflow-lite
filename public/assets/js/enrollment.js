@@ -13,6 +13,10 @@
         totalSteps: 5,
         formData: {},
         sessionId: '',
+        // HMAC token proving the server issued sessionId. Both come from the
+        // uncached fffl_start_session call; neither is ever in the page HTML.
+        sessionToken: '',
+        sessionReady: null,
         instanceSlug: '',
         formType: 'enrollment',
         isSubmitting: false,
@@ -48,7 +52,6 @@
         if (!$container.length) return;
 
         FFEnrollment.instanceSlug = $container.data('instance');
-        FFEnrollment.sessionId = $container.data('session');
         FFEnrollment.currentStep = parseInt($container.data('step')) || 1;
         FFEnrollment.formType = $container.data('form-type') || 'enrollment';
         FFEnrollment.totalSteps = FFEnrollment.formType === 'scheduler' ? 2 : 5;
@@ -57,6 +60,10 @@
         var urlParams = new URLSearchParams(window.location.search);
         FFEnrollment.resumeToken = urlParams.get('ff_resume');
 
+        // Hold form submits until a session exists (registered before
+        // bindEvents so it runs first among the delegated submit handlers).
+        $(document).on('submit', '.ff-form-container form', holdSubmitUntilSession);
+
         bindEvents();
 
         // Only update progress bar for enrollment forms
@@ -64,12 +71,16 @@
             updateProgressBar();
         }
 
-        // If there's a resume token, try to restore session
+        // If there's a resume token, try to restore session; otherwise ask the
+        // server for a fresh one.
         if (FFEnrollment.resumeToken) {
-            resumeFromToken();
+            FFEnrollment.sessionReady = resumeFromToken();
         } else {
-            // Track initial step entry
-            trackStepEvent('enter', FFEnrollment.currentStep);
+            FFEnrollment.sessionReady = startSession();
+            FFEnrollment.sessionReady.done(function() {
+                // Track initial step entry
+                trackStepEvent('enter', FFEnrollment.currentStep);
+            });
         }
 
         // Start auto-save timer
@@ -85,6 +96,73 @@
                 trackStepEvent('abandon', FFEnrollment.currentStep, true);
             }
         });
+    }
+
+    /**
+     * Remember the server-issued session for this tab.
+     */
+    function setSession(sessionId, sessionToken) {
+        FFEnrollment.sessionId = sessionId || '';
+        FFEnrollment.sessionToken = sessionToken || '';
+        // auto-save.js reads these off the container.
+        $('.ff-form-container')
+            .data('session', FFEnrollment.sessionId)
+            .data('sessionToken', FFEnrollment.sessionToken);
+    }
+
+    /**
+     * Obtain a session from the uncached bootstrap endpoint.
+     *
+     * @return {jQuery.Promise} resolved once sessionId/sessionToken are set.
+     */
+    function startSession() {
+        var deferred = $.Deferred();
+
+        $.ajax({
+            url: fffl_frontend.ajax_url,
+            type: 'POST',
+            cache: false,
+            data: {
+                action: 'fffl_start_session',
+                nonce: fffl_frontend.nonce,
+                instance: FFEnrollment.instanceSlug
+            },
+            success: function(response) {
+                if (response && response.success && response.data && response.data.session_id) {
+                    setSession(response.data.session_id, response.data.session_token);
+                    deferred.resolve();
+                } else {
+                    showAlert((response && response.data && response.data.message) || fffl_frontend.strings.error, 'error');
+                    deferred.reject();
+                }
+            },
+            error: function() {
+                showAlert(fffl_frontend.strings.network_error, 'error');
+                deferred.reject();
+            }
+        });
+
+        return deferred.promise();
+    }
+
+    /**
+     * Defer a submit that happens before the session exists, then replay it.
+     */
+    function holdSubmitUntilSession(e) {
+        if (FFEnrollment.sessionToken) {
+            return;
+        }
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        var $form = $(this);
+        if (FFEnrollment.sessionReady && !$form.data('ffAwaitingSession')) {
+            $form.data('ffAwaitingSession', true);
+            FFEnrollment.sessionReady.done(function() {
+                $form.removeData('ffAwaitingSession');
+                $form.trigger('submit');
+            });
+        }
     }
 
     /**
@@ -390,6 +468,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 utility_no: utilityNo,
                 zip: zip
             },
@@ -500,6 +579,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 form_data: JSON.stringify(FFEnrollment.formData)
             },
             success: function(response) {
@@ -653,6 +733,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 form_data: JSON.stringify(FFEnrollment.formData)
             },
             success: function(response) {
@@ -748,6 +829,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 step: step,
                 form_data: JSON.stringify(FFEnrollment.formData)
             },
@@ -824,6 +906,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 step: FFEnrollment.currentStep,
                 form_data: JSON.stringify(FFEnrollment.formData)
             }
@@ -877,6 +960,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 account_number: accountNumber,
                 device_type: FFEnrollment.formData.device_type,
                 fsr_no: FFEnrollment.formData.fsr_no || ''
@@ -1483,6 +1567,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 step: FFEnrollment.currentStep,
                 form_data: JSON.stringify(FFEnrollment.formData)
             },
@@ -1654,6 +1739,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 step: FFEnrollment.currentStep,
                 email: email,
                 form_data: JSON.stringify(FFEnrollment.formData)
@@ -1688,6 +1774,7 @@
      * Resume form from token
      */
     function resumeFromToken() {
+        var deferred = $.Deferred();
         var $content = $('.ff-form-content');
         $content.addClass('ff-loading');
 
@@ -1702,13 +1789,12 @@
             },
             success: function(response) {
                 if (response.success) {
-                    // Restore session and form data
-                    FFEnrollment.sessionId = response.data.session_id;
+                    // Restore session (re-bound to this browser by the
+                    // server-issued token) and form data
+                    setSession(response.data.session_id, response.data.session_token);
                     FFEnrollment.formData = response.data.form_data || {};
                     FFEnrollment.currentStep = response.data.step || 1;
-
-                    // Update container data
-                    $('.ff-form-container').data('session', FFEnrollment.sessionId);
+                    deferred.resolve();
 
                     // Show restored message
                     showAlert('Welcome back! Your progress has been restored.', 'info');
@@ -1724,15 +1810,20 @@
                     }
                 } else {
                     showAlert(response.data.message || 'Unable to restore your progress.', 'error');
+                    // Fall back to a fresh session so the form stays usable.
+                    startSession().then(deferred.resolve, deferred.reject);
                 }
             },
             error: function() {
                 showAlert(fffl_frontend.strings.network_error, 'error');
+                deferred.reject();
             },
             complete: function() {
                 $content.removeClass('ff-loading');
             }
         });
+
+        return deferred.promise();
     }
 
     // =========================================================================
@@ -1929,6 +2020,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 utility_no: utilityNo,
                 zip: zip
             },
@@ -1990,6 +2082,7 @@
                 nonce: fffl_frontend.nonce,
                 instance: FFEnrollment.instanceSlug,
                 session_id: FFEnrollment.sessionId,
+                session_token: FFEnrollment.sessionToken,
                 schedule_date: scheduleDate,
                 schedule_time: scheduleTime,
                 schedule_fsr: scheduleFsr
