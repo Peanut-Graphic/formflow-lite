@@ -37,6 +37,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `account_validated` flag; enrollment refuses (`account_not_validated`) without it.
   Compatibility: a resume link for a session validated before this release must re-run the
   account-validation step before enrolling.
+- **Account-validation PII oracle (LOW).** `fffl_validate_account` returned the account holder's
+  full name, email and service address to anyone holding an account number + ZIP, throttled only
+  by the shared 120/min limit. The response now carries a masked summary (first name, last-name
+  initial, masked email, city/state/ZIP — no street); the full values stay in the server-side
+  session that pre-fills later steps, and `enrollment.js` no longer copies customer details out of
+  the response into its form data. Validation has its own per-IP budget (default 20 per 10
+  minutes, checked before the utility API call; tunable via the `validate_rate_limit_requests` /
+  `validate_rate_limit_window` keys of `fffl_settings`). The household medical-acknowledgment
+  flag is still returned because the customer must acknowledge it before continuing; the new
+  throttle is what limits its exposure.
+- **Removed dead embed REST routes (LOW).** `POST /fffl/v1/embed/submit`, `/embed/validate` and
+  `/embed/schedule` were public routes keyed only by an embed token: Lite has no UI that issues
+  embed tokens, `/embed/submit` called a `FormHandler::process_enrollment()` method that does not
+  exist, and `/embed/validate` had no nonce and (without Peanut Suite's rate-limit filter) no
+  throttle while returning the connector's full validation result. The routes, their handlers
+  and the embed config's `endpoints` / `nonce` keys are gone; `embed.js` always renders the
+  iframe (the real, session-bound form) and logs a console warning for `data-ff-mode="inline"`.
 
 ## [3.3.10] - 2026-10-06
 
