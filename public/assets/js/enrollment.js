@@ -477,16 +477,9 @@
                     FFEnrollment.formData.utility_no = utilityNo;
                     FFEnrollment.formData.zip = zip;
 
-                    // Store validated data
-                    if (response.data.customer) {
-                        FFEnrollment.formData.validated_first_name = response.data.customer.first_name || '';
-                        FFEnrollment.formData.validated_last_name = response.data.customer.last_name || '';
-                        FFEnrollment.formData.validated_street = response.data.customer.street || '';
-                        FFEnrollment.formData.validated_city = response.data.customer.city || '';
-                        FFEnrollment.formData.validated_state = response.data.customer.state || '';
-                        FFEnrollment.formData.validated_zip = response.data.customer.zip || zip;
-                        FFEnrollment.formData.account_number = response.data.customer.ca_no || '';
-                    }
+                    // The validated customer details live in the server-side
+                    // session (they pre-fill step 3); the response only carries
+                    // a masked summary, which must never be copied into formData.
 
                     // Check if medical acknowledgment is required
                     if (response.data.requires_medical_acknowledgment) {
@@ -2029,13 +2022,9 @@
                     FFEnrollment.formData.utility_no = utilityNo;
                     FFEnrollment.formData.zip = zip;
 
-                    // Store validated data
-                    if (response.data.customer) {
-                        FFEnrollment.formData.first_name = response.data.customer.first_name || '';
-                        FFEnrollment.formData.last_name = response.data.customer.last_name || '';
-                        FFEnrollment.formData.address = response.data.customer.address || {};
-                        FFEnrollment.formData.account_number = response.data.customer.ca_no || '';
-                    }
+                    // The validated customer details live in the server-side
+                    // session (they pre-fill the next step); the response only
+                    // carries a masked summary, which must never be copied into formData.
 
                     goToStep(2);
                 } else {

@@ -517,3 +517,11 @@ if (!function_exists('nocache_headers')) {
         $GLOBALS['mock_nocache_headers_sent'] = ($GLOBALS['mock_nocache_headers_sent'] ?? 0) + 1;
     }
 }
+
+if (!function_exists('register_rest_route')) {
+    /** Records REST route registrations so tests can assert on the public surface. */
+    function register_rest_route($namespace, $route, $args = [], $override = false): bool {
+        $GLOBALS['mock_rest_routes'][] = ['namespace' => $namespace, 'route' => $route, 'args' => $args];
+        return true;
+    }
+}
