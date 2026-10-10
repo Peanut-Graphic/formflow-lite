@@ -159,6 +159,9 @@ class Plugin {
         add_shortcode('fffl_form', [$this->public, 'render_form_shortcode']);
         add_shortcode('fffl_enroll_button', [$this->public, 'render_enroll_button_shortcode']);
 
+        // Keep form pages out of full-page caches (headers must go out before output).
+        add_action('template_redirect', [$this->public, 'maybe_disable_page_cache'], 1);
+
         // Frontend assets
         add_action('wp_enqueue_scripts', [$this->public, 'enqueue_styles']);
         add_action('wp_enqueue_scripts', [$this->public, 'enqueue_scripts']);
@@ -170,6 +173,7 @@ class Plugin {
 
         // Public AJAX handlers (both logged in and not logged in)
         $ajax_actions = [
+            'fffl_start_session',      // Uncached session bootstrap (SessionGuard)
             'fffl_load_step',
             'fffl_validate_account',
             'fffl_enroll_early',       // Submit enrollment at end of step 3

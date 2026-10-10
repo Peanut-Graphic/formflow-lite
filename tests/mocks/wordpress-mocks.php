@@ -510,3 +510,10 @@ if (!function_exists('wp_nonce_field')) {
         return $field;
     }
 }
+
+if (!function_exists('nocache_headers')) {
+    /** Records that no-cache headers were requested (header() is a no-op in CLI). */
+    function nocache_headers(): void {
+        $GLOBALS['mock_nocache_headers_sent'] = ($GLOBALS['mock_nocache_headers_sent'] ?? 0) + 1;
+    }
+}
