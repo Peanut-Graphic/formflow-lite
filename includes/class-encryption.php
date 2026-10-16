@@ -41,12 +41,17 @@ class Encryption {
             );
         }
 
-        // fromKeyMaterial() derives the legacy key exactly as before and the V2
-        // key from the untruncated FFFL_ENCRYPTION_KEY / wp_salt('auth').
-        $this->encryptor = \Peanut\FormCore\Crypto\Encryptor::fromKeyMaterial(
-            defined('FFFL_ENCRYPTION_KEY') ? (string) FFFL_ENCRYPTION_KEY : null,
-            (string) wp_salt('auth')
-        );
+        // Another Peanut plugin may have loaded an older shared core first.
+        // Keep that core's exact legacy key derivation and encrypted storage.
+        $configured = defined('FFFL_ENCRYPTION_KEY') ? (string) FFFL_ENCRYPTION_KEY : null;
+        $salt = (string) wp_salt('auth');
+        if (method_exists(\Peanut\FormCore\Crypto\Encryptor::class, 'fromKeyMaterial')) {
+            $this->encryptor = \Peanut\FormCore\Crypto\Encryptor::fromKeyMaterial($configured, $salt);
+        } else {
+            $this->encryptor = new \Peanut\FormCore\Crypto\Encryptor(
+                \Peanut\FormCore\Crypto\Encryptor::deriveKey($configured, $salt)
+            );
+        }
     }
 
     /**
