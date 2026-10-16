@@ -69,23 +69,10 @@ class EmbedHandler {
             ],
         ]);
 
-        register_rest_route('fffl/v1', '/embed/submit', [
-            'methods' => 'POST',
-            'callback' => [$this, 'handle_embed_submission'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('fffl/v1', '/embed/validate', [
-            'methods' => 'POST',
-            'callback' => [$this, 'handle_embed_validation'],
-            'permission_callback' => '__return_true',
-        ]);
-
-        register_rest_route('fffl/v1', '/embed/schedule', [
-            'methods' => 'POST',
-            'callback' => [$this, 'handle_embed_schedule'],
-            'permission_callback' => '__return_true',
-        ]);
+        // /embed/submit, /embed/validate and /embed/schedule were removed: Lite
+        // never issued embed tokens, /submit called a FormHandler method that
+        // does not exist, and /validate was an un-nonced account -> PII lookup.
+        // Embeds render the real (session-bound) form in the iframe instead.
     }
 
     /**
@@ -300,12 +287,6 @@ class EmbedHandler {
                 'auto_save' => !empty($features['auto_save']['enabled']),
                 'spanish_translation' => !empty($features['spanish_translation']['enabled']),
             ],
-            'endpoints' => [
-                'submit' => rest_url('fffl/v1/embed/submit'),
-                'validate' => rest_url('fffl/v1/embed/validate'),
-                'schedule' => rest_url('fffl/v1/embed/schedule'),
-            ],
-            'nonce' => wp_create_nonce('fffl_embed_' . $token),
         ];
 
         /**
@@ -317,128 +298,6 @@ class EmbedHandler {
         $config = apply_filters('fffl_embed_config', $config, $instance);
 
         return new \WP_REST_Response($config);
-    }
-
-    /**
-     * Check rate limit for a public embed endpoint.
-     *
-     * Returns a WP_REST_Response error if the limit is exceeded, or null if OK.
-     *
-     * @param string $action  Unique action identifier.
-     * @param int    $limit   Max requests per window.
-     * @param int    $window  Time window in seconds.
-     * @return \WP_REST_Response|null
-     */
-    private function check_embed_rate_limit(string $action, int $limit = 10, int $window = 60): ?\WP_REST_Response {
-        $allowed = apply_filters(Hooks::CHECK_RATE_LIMIT, true, $action, $limit, $window);
-        if (!$allowed) {
-            return new \WP_REST_Response(
-                ['error' => 'Too many requests. Please try again later.'],
-                429
-            );
-        }
-        return null;
-    }
-
-    /**
-     * Handle embed form submission
-     *
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response
-     */
-    public function handle_embed_submission(\WP_REST_Request $request): \WP_REST_Response {
-        $rate_limit_error = $this->check_embed_rate_limit('fffl_embed_submit', 10, 60);
-        if ($rate_limit_error !== null) {
-            return $rate_limit_error;
-        }
-
-        $token = $request->get_header('X-Embed-Token');
-        $instance = $this->get_instance_by_embed_token($token);
-
-        if (!$instance) {
-            return new \WP_REST_Response(['error' => 'Invalid token'], 403);
-        }
-
-        // Verify nonce
-        $nonce = $request->get_header('X-WP-Nonce');
-        if (!wp_verify_nonce($nonce, 'fffl_embed_' . $token)) {
-            return new \WP_REST_Response(['error' => 'Invalid nonce'], 403);
-        }
-
-        // Get form data
-        $form_data = $request->get_json_params();
-
-        // Process submission through form handler
-        $handler = new Forms\FormHandler();
-        $result = $handler->process_enrollment($instance['id'], $form_data);
-
-        return new \WP_REST_Response($result);
-    }
-
-    /**
-     * Handle embed account validation
-     *
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response
-     */
-    public function handle_embed_validation(\WP_REST_Request $request): \WP_REST_Response {
-        $rate_limit_error = $this->check_embed_rate_limit('fffl_embed_validate', 20, 60);
-        if ($rate_limit_error !== null) {
-            return $rate_limit_error;
-        }
-
-        $token = $request->get_header('X-Embed-Token');
-        $instance = $this->get_instance_by_embed_token($token);
-
-        if (!$instance) {
-            return new \WP_REST_Response(['error' => 'Invalid token'], 403);
-        }
-
-        $data = $request->get_json_params();
-
-        // Get connector and validate
-        $connector = $this->get_connector_for_instance($instance);
-        if (!$connector) {
-            return new \WP_REST_Response(['error' => 'Connector not available'], 500);
-        }
-
-        $config = $this->get_connector_config($instance);
-        $result = $connector->validate_account($data, $config);
-
-        return new \WP_REST_Response($result->toArray());
-    }
-
-    /**
-     * Handle embed schedule request
-     *
-     * @param \WP_REST_Request $request
-     * @return \WP_REST_Response
-     */
-    public function handle_embed_schedule(\WP_REST_Request $request): \WP_REST_Response {
-        $rate_limit_error = $this->check_embed_rate_limit('fffl_embed_schedule', 20, 60);
-        if ($rate_limit_error !== null) {
-            return $rate_limit_error;
-        }
-
-        $token = $request->get_header('X-Embed-Token');
-        $instance = $this->get_instance_by_embed_token($token);
-
-        if (!$instance) {
-            return new \WP_REST_Response(['error' => 'Invalid token'], 403);
-        }
-
-        $data = $request->get_json_params();
-
-        // Get connector and fetch slots
-        $connector = $this->get_connector_for_instance($instance);
-        if (!$connector) {
-            return new \WP_REST_Response(['error' => 'Connector not available'], 500);
-        }
-
-        $config = $this->get_connector_config($instance);
-        $result = $connector->get_schedule_slots($data, $config);
-
-        return new \WP_REST_Response($result->toArray());
     }
 
     /**
@@ -461,35 +320,6 @@ class EmbedHandler {
         );
 
         return $instance ?: null;
-    }
-
-    /**
-     * Get connector for instance
-     *
-     * @param array $instance
-     * @return Api\ApiConnectorInterface|null
-     */
-    private function get_connector_for_instance(array $instance): ?Api\ApiConnectorInterface {
-        $settings = json_decode($instance['settings'] ?? '{}', true);
-        $connector_id = $settings['connector'] ?? 'intellisource';
-
-        return Api\ConnectorRegistry::instance()->get($connector_id);
-    }
-
-    /**
-     * Get connector configuration from instance
-     *
-     * @param array $instance
-     * @return array
-     */
-    private function get_connector_config(array $instance): array {
-        $encryption = new Encryption();
-
-        return [
-            'api_endpoint' => $instance['api_endpoint'] ?? '',
-            'api_password' => $encryption->decrypt($instance['api_password'] ?? ''),
-            'test_mode' => (bool) ($instance['test_mode'] ?? false),
-        ];
     }
 
     /**

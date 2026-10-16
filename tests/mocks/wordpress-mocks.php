@@ -517,3 +517,29 @@ if (!function_exists('nocache_headers')) {
         $GLOBALS['mock_nocache_headers_sent'] = ($GLOBALS['mock_nocache_headers_sent'] ?? 0) + 1;
     }
 }
+
+if (!function_exists('register_rest_route')) {
+    /** Records REST route registrations so tests can assert on the public surface. */
+    function register_rest_route($namespace, $route, $args = [], $override = false): bool {
+        $GLOBALS['mock_rest_routes'][] = ['namespace' => $namespace, 'route' => $route, 'args' => $args];
+        return true;
+    }
+}
+
+if (!function_exists('wp_generate_password')) {
+    function wp_generate_password($length = 12, $special_chars = true, $extra_special_chars = false) {
+        return substr(bin2hex(random_bytes((int) ceil($length / 2))), 0, $length);
+    }
+}
+
+if (!function_exists('add_query_arg')) {
+    function add_query_arg($args, $url) {
+        return $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($args);
+    }
+}
+
+if (!function_exists('home_url')) {
+    function home_url($path = '') {
+        return 'https://example.test' . '/' . ltrim($path, '/');
+    }
+}

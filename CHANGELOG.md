@@ -7,7 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.11] - 2026-10-16
+
+### Fixed
+- Successful appointment booking supplies the confirmation reference to the mail sender instead of throwing after the booking was saved. Booked dates and times remain visible on the confirmation screen.
+
 ### Security
+- Keep provider contact records private across step rendering, autosave and emailed resume links. Only explicitly entered caller fields are returned to the browser; existing ambiguous contact fields require reentry. Scheduler notifications can use provider contact only when mailed directly to the provider's recorded mailbox.
+- Clear appointment references when validating an account again, require fresh scheduling data before booking, and prevent rebinding an already submitted enrollment to another account.
 - **Cached-page session sharing (HIGH).** The form rendered its session id into the page HTML
   (`data-session`) and every public `fffl_*` AJAX handler found the submission by that
   client-sent id alone, so behind a full-page cache every visitor of a cached copy shared one
@@ -37,6 +44,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `account_validated` flag; enrollment refuses (`account_not_validated`) without it.
   Compatibility: a resume link for a session validated before this release must re-run the
   account-validation step before enrolling.
+- **Account-validation PII oracle (LOW).** `fffl_validate_account` returned the account holder's
+  full name, email and service address to anyone holding an account number + ZIP, throttled only
+  by the shared 120/min limit. The response now carries a masked summary (first name, last-name
+  initial, masked email, city/state/ZIP — no street); the full values stay in the server-side
+  session that pre-fills later steps, and `enrollment.js` no longer copies customer details out of
+  the response into its form data. Validation has its own per-IP budget (default 20 per 10
+  minutes, checked before the utility API call; tunable via the `validate_rate_limit_requests` /
+  `validate_rate_limit_window` keys of `fffl_settings`). The household medical-acknowledgment
+  flag is still returned because the customer must acknowledge it before continuing; the new
+  throttle is what limits its exposure.
+- **Removed dead embed REST routes (LOW).** `POST /fffl/v1/embed/submit`, `/embed/validate` and
+  `/embed/schedule` were public routes keyed only by an embed token: Lite has no UI that issues
+  embed tokens, `/embed/submit` called a `FormHandler::process_enrollment()` method that does not
+  exist, and `/embed/validate` had no nonce and (without Peanut Suite's rate-limit filter) no
+  throttle while returning the connector's full validation result. The routes, their handlers
+  and the embed config's `endpoints` / `nonce` keys are gone; `embed.js` always renders the
+  iframe (the real, session-bound form) and logs a console warning for `data-ff-mode="inline"`.
 
 ## [3.3.10] - 2026-10-06
 
