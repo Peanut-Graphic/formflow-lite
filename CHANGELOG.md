@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Keep encrypted storage compatible when an older shared Encryptor is loaded first by another installed plugin.
+
+## [3.3.12] - 2026-10-16
+
+### Fixed
+- Restore PHI IntelliSource validation, enrollment and scheduling for its two fixed HTTPS API origins on utility networks. Keep TLS verification, prohibit redirects, and retain public-address checks for all other URLs.
+
+
+## [3.3.12] - 2026-10-16
+
+### Fixed
+- Restore PHI IntelliSource validation, enrollment and scheduling for its two fixed HTTPS API origins on utility networks. Keep TLS verification, prohibit redirects, and retain public-address checks for all other URLs.
+
+
 ## [3.3.11] - 2026-10-16
 
 ### Fixed

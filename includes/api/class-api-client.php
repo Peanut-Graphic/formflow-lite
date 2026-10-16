@@ -378,7 +378,9 @@ class ApiClient {
             'timeout' => 30,
             'sslverify' => true,
             // Defence in depth: WordPress also refuses private/loopback hosts.
-            'reject_unsafe_urls' => true,
+            'reject_unsafe_urls' => !self::is_trusted_intellisource_url($url),
+            // Never follow an approved vendor URL to another origin.
+            'redirection' => 0,
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded'
             ]
@@ -449,6 +451,11 @@ class ApiClient {
      * @return bool True if the URL is safe to request.
      */
     public static function is_safe_outbound_url(string $url): bool {
+        // PHI's approved API uses split-horizon DNS on utility servers. DNS
+        // classification must not disable this fixed, TLS-verified integration.
+        if (self::is_trusted_intellisource_url($url)) {
+            return true;
+        }
         $parts = function_exists('wp_parse_url') ? wp_parse_url($url) : parse_url($url);
         if (!is_array($parts) || !isset($parts['host']) || $parts['host'] === '') {
             return false;
@@ -478,6 +485,29 @@ class ApiClient {
         }
 
         return true;
+    }
+
+    /** Fixed PHI API origins only; never an administrator-defined private host. */
+    public static function is_trusted_intellisource_url(string $url): bool {
+        $parts = parse_url($url);
+        if (!is_array($parts) || ($parts['scheme'] ?? '') !== 'https'
+            || isset($parts['user']) || isset($parts['pass']) || isset($parts['fragment'])
+            || (isset($parts['port']) && $parts['port'] !== 443)
+            || !in_array(strtolower($parts['host'] ?? ''), [
+                'ph.powerportal.com',
+                'intellisource.powerportal.pepcoholdings.com',
+            ], true)) {
+            return false;
+        }
+
+        // Restrict the exception to the operations this connector implements.
+        return in_array($parts['path'] ?? '', [
+            '/phiIntelliSOURCE/api/prospects/validate.xml',
+            '/phiIntelliSOURCE/api/prospects/enroll.xml',
+            '/phiIntelliSOURCE/api/field_service_requests/scheduling.xml',
+            '/phiIntelliSOURCE/api/field_service_requests/schedule',
+            '/phiIntelliSOURCE/api/promo_codes',
+        ], true);
     }
 
     /**
