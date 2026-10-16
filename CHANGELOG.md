@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.11] - 2026-10-16
+
 ### Fixed
 - Successful appointment booking supplies the confirmation reference to the mail sender instead of throwing after the booking was saved. Booked dates and times remain visible on the confirmation screen.
 
