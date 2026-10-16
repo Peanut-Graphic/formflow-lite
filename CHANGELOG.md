@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Successful appointment booking supplies the confirmation reference to the mail sender instead of throwing after the booking was saved. Booked dates and times remain visible on the confirmation screen.
+
 ### Security
+- Keep provider contact records private across step rendering, autosave and emailed resume links. Only explicitly entered caller fields are returned to the browser; existing ambiguous contact fields require reentry. Scheduler notifications can use provider contact only when mailed directly to the provider's recorded mailbox.
+- Clear appointment references when validating an account again, require fresh scheduling data before booking, and prevent rebinding an already submitted enrollment to another account.
 - **Cached-page session sharing (HIGH).** The form rendered its session id into the page HTML
   (`data-session`) and every public `fffl_*` AJAX handler found the submission by that
   client-sent id alone, so behind a full-page cache every visitor of a cached copy shared one
