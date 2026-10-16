@@ -16,6 +16,7 @@ if (!defined('ABSPATH')) {
 use FFFL\Database\Database;
 use FFFL\Security;
 use FFFL\SessionGuard;
+use FFFL\PublicFormData;
 use FFFL\Encryption;
 use FFFL\Api\ApiClient;
 use FFFL\Api\MockApiClient;
@@ -595,29 +596,6 @@ class Frontend {
     }
 
     /**
-     * Server-side keys that only the server may write into a session's
-     * form_data. Client form_data posts are stripped of these before merge, so
-     * the account validated against the utility API is the account that gets
-     * enrolled, and enrollment state cannot be claimed by the client.
-     */
-    private const PROTECTED_FORM_KEYS = [
-        'account_number',
-        'utility_no',
-        'zip_code',
-        'ca_no',
-        'comverge_no',
-        'validation_result',
-        'account_validated',
-        'fsr_no',
-        'scheduling_result',
-        'confirmation_number',
-        'enrollment_completed',
-        'enrollment_response',
-        '_dd_code',
-        '_eqloc_code',
-    ];
-
-    /**
      * Issue an enrollment session (uncached bootstrap).
      *
      * The form calls this once on page load. The session id and its HMAC
@@ -686,20 +664,6 @@ class Frontend {
     }
 
     /**
-     * Sanitize client form_data and drop the server-owned keys.
-     */
-    private function client_form_data($submitted): array {
-        if (!is_array($submitted)) {
-            return [];
-        }
-        $clean = Security::sanitize_form_data($submitted);
-        foreach (self::PROTECTED_FORM_KEYS as $key) {
-            unset($clean[$key]);
-        }
-        return $clean;
-    }
-
-    /**
      * Send the error when the session's account was never validated server-side.
      *
      * @return bool True when the request must stop.
@@ -760,16 +724,19 @@ class Frontend {
             if (!is_array($posted_form_data)) {
                 $posted_form_data = [];
             }
-            foreach (self::PROTECTED_FORM_KEYS as $key) {
-                unset($posted_form_data[$key]);
-            }
+            // Provider data and ambiguous legacy contact fields never become
+            // template variables. Posted values are only the caller's input.
 
             // Ensure form_data is always an array before merging
             $existing_data = [];
             if ($submission && isset($submission['form_data'])) {
                 $existing_data = is_array($submission['form_data']) ? $submission['form_data'] : [];
             }
-            $form_data = array_merge($existing_data, $posted_form_data);
+            $form_data = PublicFormData::project(
+                PublicFormData::capture($existing_data, $posted_form_data, $session_id, (int) $instance_id),
+                $session_id,
+                (int) $instance_id
+            );
 
             // Render step template based on form type
             ob_start();
@@ -961,6 +928,13 @@ class Frontend {
         if ($this->refuse_if_completed($submission)) {
             return;
         }
+        if (!empty($submission['form_data']['enrollment_completed'])) {
+            wp_send_json_error([
+                'message' => __('This enrollment has already been submitted. Finish scheduling before starting a new enrollment.', 'formflow-lite'),
+                'code' => 'account_already_enrolled',
+            ]);
+            return;
+        }
 
         // Account validation is an account+ZIP -> customer oracle; give it a
         // much tighter per-IP budget than the shared form limit, checked
@@ -1010,25 +984,27 @@ class Frontend {
             $form_data['zip_code'] = $zip_code;
             $form_data['ca_no'] = $result->get_ca_no();
             $form_data['comverge_no'] = $result->get_comverge_no();
-            $form_data['validation_result'] = $result->to_array();
 
-            // Pre-fill customer info if available
-            if ($result->get_first_name()) {
-                $form_data['first_name'] = $result->get_first_name();
-            }
-            if ($result->get_last_name()) {
-                $form_data['last_name'] = $result->get_last_name();
-            }
-            if ($result->get_email()) {
-                $form_data['email'] = $result->get_email();
-            }
             $address = $result->get_address();
             if ($is_scheduler) {
                 $address = fffl_apply_default_state_to_address($instance, $address);
             }
-            if (!empty($address['street'])) {
-                $form_data['address'] = $address;
-            }
+            // Validation establishes account state, not permission to disclose
+            // the provider's contact record. Keep it separate from caller input.
+            $form_data = PublicFormData::validated(
+                $form_data,
+                $result->to_array(),
+                [
+                    'first_name' => $result->get_first_name(),
+                    'last_name' => $result->get_last_name(),
+                    'email' => $result->get_email(),
+                    'address' => $address,
+                ],
+                $account_number,
+                $zip_code,
+                $session_id,
+                (int) $instance_id
+            );
 
             // Check if demo mode (auto-mark as test data)
             $is_demo = $instance['settings']['demo_mode'] ?? false;
@@ -1163,7 +1139,7 @@ class Frontend {
         // Merge submitted data with existing form data. Server-owned keys
         // (validated account number, ca_no, enrollment state, ...) are
         // stripped from the client copy so they cannot override the session.
-        $form_data = array_merge($prior_form_data, $this->client_form_data($submitted_data));
+        $form_data = PublicFormData::capture($prior_form_data, $submitted_data, $session_id, (int) $instance_id);
 
         // Check demo mode
         $demo_mode = $instance['settings']['demo_mode'] ?? false;
@@ -1533,7 +1509,7 @@ class Frontend {
 
         // Merge submitted data with existing form data (server-owned keys,
         // including enrollment_completed, are stripped from the client copy).
-        $form_data = array_merge($stored_data, $this->client_form_data($submitted_data));
+        $form_data = PublicFormData::capture($stored_data, $submitted_data, $session_id, (int) $instance_id);
 
         // Server-side validation for all steps before final submission
         $validation_errors = $this->validate_all_form_steps($form_data, $instance);
@@ -2007,6 +1983,10 @@ class Frontend {
         }
 
         $form_data = $submission['form_data'];
+        if (empty($form_data['fsr_no'])) {
+            wp_send_json_error(['message' => __('Please refresh available appointments before booking.', 'formflow-lite')]);
+            return;
+        }
 
         try {
             $api = $this->get_api_client($instance);
@@ -2054,8 +2034,10 @@ class Frontend {
 
             if ($booking_code === '0') {
                 // Success - update submission
-                $form_data['schedule_date'] = $schedule_date;
-                $form_data['schedule_time'] = $schedule_time;
+                $form_data = PublicFormData::capture($form_data, [
+                    'schedule_date' => $schedule_date,
+                    'schedule_time' => $schedule_time,
+                ], $session_id, (int) $instance_id);
                 $form_data['schedule_time_display'] = $this->get_time_display($schedule_time);
 
                 $this->db->update_submission($submission['id'], [
@@ -2079,7 +2061,14 @@ class Frontend {
                 ], $instance_id);
 
                 // Send confirmation email
-                $this->send_confirmation_email($instance, $form_data);
+                $notification_data = $form_data;
+                if (($instance['form_type'] ?? '') === 'scheduler' && !empty($form_data['_provider_validation']['customer']['email'])) {
+                    // Provider contact is used only for mail to that provider-owned
+                    // mailbox. Never mix it into caller mail or public output.
+                    $customer = $form_data['_provider_validation']['customer'];
+                    $notification_data = array_merge($notification_data, $customer, $customer['address'] ?? []);
+                }
+                $this->send_confirmation_email($instance, $notification_data, (string) ($form_data['confirmation_number'] ?? $fsr));
 
                 wp_send_json_success([
                     'message' => __('Your appointment has been scheduled!', 'formflow-lite'),
@@ -2135,11 +2124,11 @@ class Frontend {
             return;
         }
 
-        $sanitized_data = $this->client_form_data($submitted_data);
+        $sanitized_data = PublicFormData::capture([], $submitted_data, $session_id, (int) $instance_id);
 
         if ($submission) {
             $existing_data = is_array($submission['form_data']) ? $submission['form_data'] : [];
-            $form_data = array_merge($existing_data, $sanitized_data);
+            $form_data = PublicFormData::capture($existing_data, $submitted_data, $session_id, (int) $instance_id);
             $this->db->update_submission($submission['id'], [
                 'form_data' => $form_data,
                 'step' => $step
@@ -2195,11 +2184,11 @@ class Frontend {
             $instance_id = $instance['id'];
 
             // Save progress first
-            $sanitized_data = $this->client_form_data($submitted_data);
+            $sanitized_data = PublicFormData::capture([], $submitted_data, $session_id, (int) $instance_id);
 
             if ($submission) {
                 $existing_data = is_array($submission['form_data']) ? $submission['form_data'] : [];
-                $form_data = array_merge($existing_data, $sanitized_data);
+                $form_data = PublicFormData::capture($existing_data, $submitted_data, $session_id, (int) $instance_id);
                 $this->db->update_submission($submission['id'], [
                     'form_data' => $form_data,
                     'step' => $step
@@ -2316,14 +2305,18 @@ class Frontend {
         // Mark token as used
         $this->db->mark_resume_token_used($token);
 
-        // The emailed, single-use resume token proves ownership; re-bind this
-        // browser to the saved session with a fresh session token.
+        // The emailed token proves session continuity, not utility-account
+        // ownership. Return only caller input when re-binding the browser.
         SessionGuard::send_private_headers();
         wp_send_json_success([
             'session_id' => $resume_data['session_id'],
             'session_token' => SessionGuard::token_for((string) $resume_data['session_id'], (int) $instance['id']),
             'step' => $submission['step'],
-            'form_data' => $submission['form_data']
+            'form_data' => PublicFormData::project(
+                is_array($submission['form_data'] ?? null) ? $submission['form_data'] : [],
+                (string) $resume_data['session_id'],
+                (int) $instance['id']
+            )
         ]);
     }
 

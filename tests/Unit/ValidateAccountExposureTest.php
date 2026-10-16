@@ -96,7 +96,7 @@ final class ValidateAccountExposureTest extends TestCase
     public function test_full_values_stay_in_the_server_session(): void
     {
         $this->validate();
-        $stored = $this->rows[0]['form_data'];
+        $stored = $this->rows[0]['form_data']['_provider_validation']['customer'];
         $this->assertSame('Smith', $stored['last_name']);
         $this->assertSame('john.smith@example.com', $stored['email']);
         $this->assertSame('123 Main Street', $stored['address']['street']);

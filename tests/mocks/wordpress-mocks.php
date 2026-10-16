@@ -525,3 +525,21 @@ if (!function_exists('register_rest_route')) {
         return true;
     }
 }
+
+if (!function_exists('wp_generate_password')) {
+    function wp_generate_password($length = 12, $special_chars = true, $extra_special_chars = false) {
+        return substr(bin2hex(random_bytes((int) ceil($length / 2))), 0, $length);
+    }
+}
+
+if (!function_exists('add_query_arg')) {
+    function add_query_arg($args, $url) {
+        return $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($args);
+    }
+}
+
+if (!function_exists('home_url')) {
+    function home_url($path = '') {
+        return 'https://example.test' . '/' . ltrim($path, '/');
+    }
+}
