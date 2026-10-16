@@ -513,7 +513,8 @@ class IntelliSourceConnector implements ApiConnectorInterface {
             'timeout' => 30,
             'sslverify' => true,
             // Defence in depth: WordPress also refuses private/loopback hosts.
-            'reject_unsafe_urls' => true,
+            'reject_unsafe_urls' => !ApiClient::is_trusted_intellisource_url($url),
+            'redirection' => 0,
             'headers' => [
                 'Content-Type' => 'application/x-www-form-urlencoded',
             ],
